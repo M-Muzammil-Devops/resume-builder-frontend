@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+out/
+dist/
+
+# env files (keep the example)
+
+# logs and uploads
+logs/
+*.log
+uploads/
+
+# misc
+*.tsbuildinfo
+.DS_Store
+
+.env
+.env.*
+!.env.example
+*.bak
+*.log
+*.tsbuildinfo
