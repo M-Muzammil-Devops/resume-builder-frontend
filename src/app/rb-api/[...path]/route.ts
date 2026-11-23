@@ -17,8 +17,12 @@ const TIMEOUT_MS = 120_000;
  */
 const UPLOAD_TIMEOUT_MS = Math.max(60_000, Number(process.env.AUDIO_UPLOAD_TIMEOUT_MS) || 60 * 60_000);
 
-// Hop-by-hop and recomputed headers are not forwarded.
-const DROP_REQUEST = new Set(["host", "connection", "keep-alive", "transfer-encoding", "upgrade", "content-length", "expect"]);
+// Hop-by-hop and recomputed headers are not forwarded. Client-sent forwarding headers are dropped too: the API
+// trusts X-Forwarded-For from loopback (this server), so only the value set below may reach it (QA run3, 2e).
+const DROP_REQUEST = new Set([
+  "host", "connection", "keep-alive", "transfer-encoding", "upgrade", "content-length", "expect",
+  "x-forwarded-for", "x-real-ip", "forwarded",
+]);
 const DROP_RESPONSE = new Set(["connection", "keep-alive", "transfer-encoding", "content-encoding", "content-length", "set-cookie"]);
 
 function jsonError(status: number, error: string, code: string) {
@@ -41,6 +45,12 @@ async function forward(request: NextRequest, ctx: { params: Promise<{ path?: str
   const proto = request.headers.get("x-forwarded-proto") || request.nextUrl.protocol.replace(":", "");
   headers.set("x-forwarded-host", request.headers.get("x-forwarded-host") || host);
   headers.set("x-forwarded-proto", proto);
+  // Host nginx overwrites X-Real-IP with $remote_addr, so it is the real client when the request came through nginx.
+  const realIp = (request.headers.get("x-real-ip") || "").trim();
+  if (/^[0-9a-fA-F:.]{2,64}$/.test(realIp)) {
+    headers.set("x-forwarded-for", realIp);
+    headers.set("x-real-ip", realIp);
+  }
 
   const hasBody = !["GET", "HEAD"].includes(request.method);
   let upstream: Response;

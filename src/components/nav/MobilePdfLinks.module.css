@@ -1,0 +1,33 @@
+/* PDF block inside the burger menus. Specificity (.grid .link) beats the host menus' ".menu a" rules. */
+.block { display: grid; gap: 8px; padding: 4px 6px 6px; }
+.head {
+  display: flex; align-items: center; gap: 8px; padding: 2px 8px 0;
+  font-size: 13px; font-weight: 700; color: inherit; opacity: 0.85;
+}
+.soon {
+  padding: 2px 7px; border-radius: 999px; font-style: normal; font-size: 9px; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  background: linear-gradient(180deg, #f0abfc, #c026d3); color: #3b0a3f;
+}
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.grid .link {
+  display: flex; align-items: center; gap: 8px; min-width: 0; padding: 9px 10px; border-radius: 12px;
+  font-size: 13px; font-weight: 700; line-height: 1.25;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: background 0.2s, border-color 0.2s;
+}
+.grid .link:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(240, 171, 252, 0.4); }
+.ico {
+  flex: none; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #fff;
+  background: linear-gradient(160deg, #f472b6, #9333ea);
+}
+.text { min-width: 0; overflow-wrap: anywhere; }
+.grid .all { justify-content: center; color: #7dd3fc; }
+
+:global(html[data-theme="light"]) .grid .link { background: #f5f7ff; border-color: rgba(99, 102, 241, 0.16); }
+:global(html[data-theme="light"]) .grid .link:hover { background: #eef2ff; border-color: rgba(192, 38, 211, 0.35); }
+:global(html[data-theme="light"]) .grid .all { color: #1d4ed8; }
+
+@media (prefers-reduced-motion: reduce) {
+  .grid .link { transition: none; }
+}

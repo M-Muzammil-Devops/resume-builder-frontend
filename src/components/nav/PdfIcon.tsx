@@ -10,6 +10,7 @@ import {
   ListOrdered,
   Lock,
   LockOpen,
+  Merge,
   Minimize2,
   PencilLine,
   Presentation,
@@ -17,6 +18,7 @@ import {
   ScanText,
   Sheet,
   Signature,
+  Split,
   Stamp,
   Wrench,
   type LucideIcon,
@@ -24,6 +26,8 @@ import {
 import type { PdfToolIcon } from "./tools";
 
 const ICONS: Record<PdfToolIcon, LucideIcon> = {
+  merge: Merge,
+  split: Split,
   compress: Minimize2,
   repair: Wrench,
   ocr: ScanText,

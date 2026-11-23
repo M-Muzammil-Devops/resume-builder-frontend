@@ -4,6 +4,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // QA run3 (10b): host nginx compresses (brotli for browsers, gzip fallback). When Next gzipped first, nginx
+  // passed the gzip body through untouched, so browsers never got brotli. Local `next start` is uncompressed.
+  compress: false,
   // Docker image only (the Dockerfile sets NEXT_STANDALONE=1): self-contained server in .next/standalone.
   ...(process.env.NEXT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   allowedDevOrigins: ["*.trycloudflare.com"],
@@ -46,6 +49,8 @@ const nextConfig: NextConfig = {
       { source: "/tools/ai-voice-cleaner", destination: "/tools/audio-noise-remover", permanent: true },
       // The browser-only "local editor" demo was removed.
       { source: "/user/editor/local-demo", destination: "/user/dashboard", permanent: false },
+      // "Edit PDF" duplicated the PDF Editor (QA run3, 3a).
+      { source: "/tools/pdf/edit", destination: "/tools/pdf/pdf-editor", permanent: false },
     ];
   },
 };

@@ -57,3 +57,13 @@ export function flagOf(code: string | null | undefined): string {
   if (!code || !/^[A-Za-z]{2}$/.test(code)) return "";
   return String.fromCodePoint(...code.toUpperCase().split("").map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
+
+/**
+ * QA run3 WARN: the From/To pickers meant UTC days. A picked day now means the admin's own local day
+ * (Asia/Karachi for the owner): it is sent as the exact UTC instant of local 00:00 / 23:59:59.999.
+ */
+export function localDayBound(day: string, end: boolean): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return day;
+  const d = new Date(`${day}T${end ? "23:59:59.999" : "00:00:00.000"}`);
+  return Number.isNaN(d.getTime()) ? day : d.toISOString();
+}

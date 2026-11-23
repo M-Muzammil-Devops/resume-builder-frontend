@@ -42,6 +42,7 @@ import { onScrollFrame, useAuroraMotion, useFloatPause, useHeroPointer, useReduc
 import { ToolsMenu } from "@/components/nav/ToolsMenu";
 import { HeaderAccount } from "@/components/nav/HeaderAccount";
 import { TOOL_LINKS } from "@/components/nav/tools";
+import { MobilePdfLinks } from "@/components/nav/MobilePdfLinks";
 import { CookieSettingsLink } from "@/components/consent/CookieSettingsLink";
 import { applyTemplateSettings, fetchTemplateSettings, type TemplateSetting } from "@/lib/templateSettings";
 import s from "./LandingAurora.module.css";
@@ -496,12 +497,13 @@ export function LandingAurora() {
           <a href="#features" onClick={closeMenu}>Features</a>
           <a href="#pricing" onClick={closeMenu}>Pricing</a>
           <span className={s.menuLabel}>Tools</span>
-          {TOOL_LINKS.map((tool) => (
+          {TOOL_LINKS.filter((tool) => tool.tone !== "c").map((tool) => (
             <Link key={tool.href} href={tool.href} onClick={closeMenu}>
               {tool.title}
               {tool.badge && <em className={s.menuBadge}>{tool.badge}</em>}
             </Link>
           ))}
+          <MobilePdfLinks onNavigate={closeMenu} />
           {signedIn ? (
             <Link href="/user/dashboard" className={cx(s.btn, s.btnSm)} onClick={closeMenu}>Dashboard</Link>
           ) : (

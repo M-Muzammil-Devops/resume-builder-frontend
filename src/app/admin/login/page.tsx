@@ -7,6 +7,7 @@ import { Fingerprint, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
 import { AuroraBrand, AuroraError, AuroraInput, AuroraPassword, AuroraSubmit } from "@/components/auth/AuroraFields";
 import { ApiError, apiFetch, getRefreshToken, getToken, refreshAdminCookie, setSession } from "@/lib/api";
 import { safeAdminNext } from "@/lib/adminSession";
+import { AuthFooter } from "@/components/auth/AuthFooter";
 import s from "@/components/auth/AuthSlider.module.css";
 import a from "@/components/auth/AdminLogin.module.css";
 
@@ -239,6 +240,7 @@ function AdminLoginForm() {
           </aside>
         </div>
       </div>
+      <AuthFooter />
     </main>
   );
 }

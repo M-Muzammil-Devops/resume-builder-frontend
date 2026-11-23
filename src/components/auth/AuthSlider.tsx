@@ -5,6 +5,7 @@ import { KeyboardEvent, MouseEvent, PointerEvent, useCallback, useEffect, useRef
 import { LoginPanel } from "@/components/auth/LoginPanel";
 import { RegisterPanel } from "@/components/auth/RegisterPanel";
 import { SignedInCard } from "@/components/auth/SignedInCard";
+import { AuthFooter } from "@/components/auth/AuthFooter";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import s from "./AuthSlider.module.css";
@@ -133,6 +134,7 @@ export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
         <div className={m.signedWrap}>
           <SignedInCard user={user} />
         </div>
+        <AuthFooter />
       </main>
     );
   }
@@ -294,6 +296,7 @@ export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
         </div>
         <div className={`${s.sh} ${s.big} ${s.sph} ${s.frontSphere} ${s.float1}`} aria-hidden />
       </div>
+      <AuthFooter />
     </main>
   );
 }

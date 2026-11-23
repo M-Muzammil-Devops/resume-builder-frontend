@@ -8,6 +8,8 @@ import { Menu, X } from "lucide-react";
 import { getToken } from "@/lib/api";
 import { ToolsMenu } from "@/components/nav/ToolsMenu";
 import { TOOL_LINKS } from "@/components/nav/tools";
+import { MobilePdfLinks } from "@/components/nav/MobilePdfLinks";
+import { HeaderAccount } from "@/components/nav/HeaderAccount";
 import s from "./SiteShell.module.css";
 
 const cx = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(" ");
@@ -81,14 +83,8 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <ToolsMenu />
             <Link href="/#pricing">Pricing</Link>
           </nav>
-          {signedIn ? (
-            <Link href="/user/dashboard" className={cx(s.btn, s.btnSm, s.navCta)}>Dashboard</Link>
-          ) : (
-            <>
-              <Link href={loginHref} className={s.login}>Log in</Link>
-              <Link href="/register" className={cx(s.btn, s.btnSm, s.navCta)}>Get started</Link>
-            </>
-          )}
+          {/* QA run3 (7b): same Day/Night toggle + user menu as the landing page and the tool pages. */}
+          <HeaderAccount loginClassName={s.login} ctaClassName={cx(s.btn, s.btnSm, s.navCta)} loginHref={loginHref} />
           <button
             type="button"
             className={s.burger}
@@ -103,12 +99,13 @@ export function SiteShell({ children }: { children: ReactNode }) {
         <div id="site-menu" className={cx(s.menu, menuOpen && s.menuOpen)} hidden={!menuOpen}>
           <Link href="/#templates" onClick={close}>Templates</Link>
           <span className={s.menuLabel}>Tools</span>
-          {TOOL_LINKS.map((t) => (
+          {TOOL_LINKS.filter((t) => t.tone !== "c").map((t) => (
             <Link key={t.href} href={t.href} onClick={close} aria-current={t.href === pathname ? "page" : undefined}>
               {t.title}
-              {t.badge && <em className={cx(s.menuBadge, t.tone === "c" && s.menuBadgeSoon)}>{t.badge}</em>}
+              {t.badge && <em className={s.menuBadge}>{t.badge}</em>}
             </Link>
           ))}
+          <MobilePdfLinks onNavigate={close} pathname={pathname} />
           <Link href="/#pricing" onClick={close}>Pricing</Link>
           {signedIn ? (
             <Link href="/user/dashboard" className={cx(s.btn, s.btnSm)} onClick={close}>Dashboard</Link>

@@ -52,7 +52,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 16px;
+  /* bottom room for the legal footer (AuthFooter, QA run3 2b) */
+  padding: 40px 16px 56px;
   overflow: hidden;
   perspective: 1800px;
   font-family: var(--font-raleway), "Segoe UI", sans-serif;
@@ -865,7 +866,7 @@
 /* Short desktop windows (e.g. 1024x518): shrink the whole card so it fits without scrolling. */
 @media (max-height: 760px) and (min-width: 768px) {
   .page {
-    padding: 20px 16px;
+    padding: 20px 16px 54px;
   }
   .stage {
     zoom: 0.86;
@@ -886,7 +887,7 @@
 @media (max-width: 767px) {
   .page {
     align-items: flex-start;
-    padding: 18px 12px;
+    padding: 18px 12px 60px;
     perspective: none;
   }
   .stage {

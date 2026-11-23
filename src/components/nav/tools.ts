@@ -8,6 +8,7 @@ export const TOOL_LINKS: ToolLink[] = [
 
 /** PDF tools: every item is "Coming soon" and opens /tools/pdf/<slug>. */
 export type PdfToolIcon =
+  | "merge" | "split"
   | "compress" | "repair" | "ocr" | "image" | "word" | "slides" | "sheet" | "html" | "archive"
   | "rotate" | "numbers" | "watermark" | "crop" | "edit" | "form"
   | "unlock" | "lock" | "sign" | "redact" | "compare";
@@ -21,7 +22,20 @@ export const PDF_EDITOR: PdfTool = {
   icon: "edit",
 };
 
+/**
+ * 25 "Coming soon" tools (plus the PDF Editor above). QA run3: the list had 24 because "Organize" (merge/split)
+ * was missing and "Edit PDF" duplicated the PDF Editor; /tools/pdf/edit now redirects to /tools/pdf/pdf-editor.
+ */
 export const PDF_TOOL_GROUPS: PdfToolGroup[] = [
+  {
+    id: "organize",
+    title: "Organize PDF",
+    blurb: "Combine files or pull pages apart.",
+    tools: [
+      { slug: "merge", title: "Merge PDF", blurb: "Combine several PDFs into one file.", icon: "merge" },
+      { slug: "split", title: "Split PDF", blurb: "Separate pages into new PDFs.", icon: "split" },
+    ],
+  },
   {
     id: "optimize",
     title: "Optimize PDF",
@@ -65,7 +79,6 @@ export const PDF_TOOL_GROUPS: PdfToolGroup[] = [
       { slug: "page-numbers", title: "Add page numbers", blurb: "Number pages in any position.", icon: "numbers" },
       { slug: "watermark", title: "Add watermark", blurb: "Stamp text or an image on pages.", icon: "watermark" },
       { slug: "crop", title: "Crop PDF", blurb: "Trim margins and page areas.", icon: "crop" },
-      { slug: "edit", title: "Edit PDF", blurb: "Add text, shapes and images.", icon: "edit" },
       { slug: "forms", title: "PDF Forms", blurb: "Create and fill PDF forms.", icon: "form" },
     ],
   },

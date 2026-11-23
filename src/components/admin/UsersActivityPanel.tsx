@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, Globe2, Laptop, Monitor, RotateCcw, Search, Smartphone, Tablet, X } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
-import { adminBlob, flagOf, fmtDate, saveBlob } from "./adminFetch";
+import { adminBlob, flagOf, fmtDate, localDayBound, saveBlob } from "./adminFetch";
 import s from "./AdminPanels.module.css";
 
 type LoginRow = {
@@ -52,9 +52,17 @@ function place(r: Pick<LoginRow, "city" | "region" | "country">) {
   return [r.city, r.region !== r.city ? r.region : null, r.country].filter(Boolean).join(", ") || "Unknown";
 }
 
-function query(f: typeof EMPTY, skip = 0) {
+function filterParams(f: typeof EMPTY) {
   const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(f)) if (v) p.set(k, v);
+  for (const [k, v] of Object.entries(f)) {
+    if (!v) continue;
+    p.set(k, k === "from" ? localDayBound(v, false) : k === "to" ? localDayBound(v, true) : v);
+  }
+  return p;
+}
+
+function query(f: typeof EMPTY, skip = 0) {
+  const p = filterParams(f);
   if (skip) p.set("skip", String(skip));
   p.set("take", String(PAGE));
   return p.toString();
@@ -68,7 +76,8 @@ export function UsersActivityPanel() {
   const [skip, setSkip] = useState(0);
   const [facets, setFacets] = useState<Facets | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [detailBusy, setDetailBusy] = useState(false);
@@ -80,6 +89,7 @@ export function UsersActivityPanel() {
       const res = await apiFetch<{ events: LoginRow[]; total: number }>(`/admin/activity?${query(f, offset)}`);
       setRows(res.events);
       setTotal(res.total);
+      setLoaded(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load activity");
     } finally {
@@ -116,8 +126,7 @@ export function UsersActivityPanel() {
   async function exportCsv() {
     setError(null);
     try {
-      const p = new URLSearchParams();
-      for (const [k, v] of Object.entries(applied)) if (v) p.set(k, v);
+      const p = filterParams(applied);
       const { blob, filename } = await adminBlob(`/admin/activity/export.csv?${p.toString()}`);
       saveBlob(blob, filename || "user-activity.csv");
     } catch (err) {
@@ -240,12 +249,18 @@ export function UsersActivityPanel() {
                 <th scope="col">IP address</th>
                 <th scope="col">Location</th>
                 <th scope="col">Device</th>
+                <th scope="col">Browser</th>
               </tr>
             </thead>
             <tbody aria-busy={busy}>
-              {!busy && rows.length === 0 && (
+              {!loaded && busy && (
                 <tr>
-                  <td colSpan={5} className={s.empty}>No logins match these filters.</td>
+                  <td colSpan={6} className={s.empty} role="status">Loading activity…</td>
+                </tr>
+              )}
+              {loaded && !busy && rows.length === 0 && (
+                <tr>
+                  <td colSpan={6} className={s.empty}>No logins match these filters.</td>
                 </tr>
               )}
               {rows.map((r) => (
@@ -273,10 +288,11 @@ export function UsersActivityPanel() {
                       <DeviceIcon device={r.device} />
                       <span>
                         <span className={s.cap}>{r.device || "unknown"}</span>
-                        <span className={s.muted}>{[r.browser, r.os].filter(Boolean).join(" · ") || "—"}</span>
+                        <span className={s.muted}>{r.os || "—"}</span>
                       </span>
                     </span>
                   </td>
+                  <td className={s.nowrap}>{r.browser || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -285,7 +301,7 @@ export function UsersActivityPanel() {
 
         <div className={s.pager}>
           <span className={s.muted}>
-            {total ? `${skip + 1}–${Math.min(skip + PAGE, total)} of ${total.toLocaleString()}` : "0 results"}
+            {!loaded ? "Loading…" : total ? `${skip + 1}–${Math.min(skip + PAGE, total)} of ${total.toLocaleString()}` : "0 results"}
           </span>
           <div className={s.pagerBtns}>
             <button type="button" className={s.btnGhost} disabled={page <= 1 || busy} onClick={() => setSkip(Math.max(0, skip - PAGE))}>Previous</button>

@@ -17,7 +17,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
-import { adminBlob, fmtDate, openBlob, saveBlob } from "./adminFetch";
+import { adminBlob, fmtDate, localDayBound, openBlob, saveBlob } from "./adminFetch";
 import s from "./AdminPanels.module.css";
 
 type BuiltinTemplate = {
@@ -131,11 +131,15 @@ function TemplatesControl() {
     setError(null);
     try {
       await apiFetch(`/admin/builtin-templates/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(body) });
-      setDrafts((d) => {
-        const next = { ...d };
-        delete next[id];
-        return next;
-      });
+      // Switches save on their own and must not throw away unsaved text edits (QA run3 WARN).
+      const savedText = "name" in body || "category" in body || "description" in body;
+      if (savedText) {
+        setDrafts((d) => {
+          const next = { ...d };
+          delete next[id];
+          return next;
+        });
+      }
       setSaved(id);
       window.setTimeout(() => setSaved((cur) => (cur === id ? null : cur)), 1800);
       await load();
@@ -173,6 +177,10 @@ function TemplatesControl() {
       <p className={s.lead}>
         The {list.length || 12} built-in resume templates shown on the landing page. Disabled templates are hidden from the gallery; featured ones
         are shown first. Order here is the gallery order.
+      </p>
+      <p className={s.muted}>
+        <strong>Enabled</strong>, <strong>Featured</strong> and the order arrows save instantly. Name, category and description changes are kept
+        until you press <strong>Save details</strong> on that card.
       </p>
       {error && <p className={s.error} role="alert">{error}</p>}
       <div className={s.tplGrid}>
@@ -248,7 +256,7 @@ function TemplatesControl() {
                     disabled={!dirty || busy !== null}
                     onClick={() => void patch(raw.id, { name: t.name, category: t.category, description: t.description })}
                   >
-                    <Save size={14} aria-hidden="true" /> {saved === raw.id ? "Saved" : "Save"}
+                    <Save size={14} aria-hidden="true" /> {saved === raw.id && !dirty ? "Saved" : "Save details"}
                   </button>
                 </div>
               </div>
@@ -280,7 +288,10 @@ function ResumesControl() {
     setError(null);
     try {
       const p = new URLSearchParams();
-      for (const [k, v] of Object.entries(f)) if (v && !(k === "status" && v === "all")) p.set(k, v);
+      for (const [k, v] of Object.entries(f)) {
+        if (!v || (k === "status" && v === "all")) continue;
+        p.set(k, k === "from" ? localDayBound(v, false) : k === "to" ? localDayBound(v, true) : v);
+      }
       p.set("take", String(RPAGE));
       if (offset) p.set("skip", String(offset));
       const res = await apiFetch<{ resumes: ResumeRow[]; total: number }>(`/admin/resumes?${p.toString()}`);
