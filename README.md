@@ -142,11 +142,11 @@ If you change how the canvas draws templates (CSS or markup), bump `RENDER_VERSI
 | Route | What |
 |---|---|
 | `/tools/audio-noise-remover` | Tool page, "Remove noise" mode |
-| `/tools/ai-voice-cleaner` | Same page, "Voice clean" mode preselected |
+| `/tools/ai-voice-cleaner` | **Retired.** Permanent redirect (308) to `/tools/audio-noise-remover` (`next.config.ts`) |
 
 - **Header menu:** `src/components/nav/ToolsMenu.tsx`. Add new tools to `src/components/nav/tools.ts`; the landing nav, the tool pages and the mobile menus all read from it. The app sidebar has a **Tools** link too.
 - **Page:** `src/components/tools/audio/` (`AudioToolPage`, `AudioCleaner`, `Waveform`, one CSS module). API client: `src/lib/audioApi.ts`.
-- **Modes:** a 3-way selector — **Remove noise**, **All voices** (`conversation`: meetings and rooms with several or far-away talkers; gentle 8–12 dB, nothing gated) and **Voice clean**. Under the strength slider a hint shows the cap, e.g. "noise down up to 15 dB" (`maxReductionDb()` in `src/lib/audioLimits.ts`, same table as the backend README).
+- **Modes:** a 2-way selector — **Remove noise** and **All voices** (`conversation`: meetings and rooms with several or far-away talkers; gentle 8–12 dB, nothing gated). Under the strength slider a hint shows the cap, e.g. "noise down up to 15 dB" (`maxReductionDb()` in `src/lib/audioLimits.ts`, same table as the backend README).
 - **One file at a time:** if an upload gets **409** (the user's earlier file is still processing, e.g. started in another tab), the panel says "Your earlier file is still processing", follows that job's progress, and offers **Cancel it & upload new file** (DELETE, then the picked file uploads) or **Cancel earlier file**. On page load the tool also asks `GET /audio/jobs/active`, so a job started elsewhere is shown and can be canceled.
 - **Flow:** upload with progress → queued → steps → Before/After players with an A/B toggle → download. Logged-out users are sent to `/login?next=/tools/...`.
 - **Drop zone:** a click anywhere in the upload box (icon, text, empty space) opens the file picker; "browse files" is plain text inside it, so there is one handler and no double open. The inner part is a `role="button"` with a tab stop: **Enter/Space** opens the picker and the whole zone gets a focus ring (`.drop:has(.pick:focus-visible)`). Drag and drop still works. Elements marked `data-no-pick` (the remove ✕ button, the login links, the hidden input) never open it (`shouldOpenPicker()` in `src/lib/playbackSpeed.ts`).
@@ -163,6 +163,52 @@ If you change how the canvas draws templates (CSS or markup), bump `RENDER_VERSI
 
 Backend details (engine, endpoints, limits, setup): `resume-builder-backend/README.md` → *Audio tool*.
 
+> The **AI Voice Cleaner** is fully retired: its page, menu and sitemap entries, and the **Voice clean** mode button (voice EQ + −16 LUFS loudness) inside Remove Background Noise. The API treats an old `mode=voice` upload as plain noise removal.
+
+## Tools hub & PDF tools (Coming soon)
+
+| Route | What |
+|---|---|
+| `/tools` | Tools hub: the live audio tool, then every PDF group as a card grid with **Coming soon** badges |
+| `/tools/pdf/<slug>` | Coming-soon page per PDF tool: icon, badge, **Notify me** button (UI only, nothing is stored or sent), related tools |
+
+- **Data:** one list in `src/components/nav/tools.ts` → `PDF_EDITOR` + `PDF_TOOL_GROUPS` (25 slugs). Pages are static (`generateStaticParams`, `dynamicParams = false`), so an unknown slug is a 404.
+
+  | Group | Tools |
+  |---|---|
+  | PDF Editor | `pdf-editor` |
+  | Optimize PDF | `compress` · `repair` · `ocr` |
+  | Convert to PDF | `jpg-to-pdf` · `word-to-pdf` · `powerpoint-to-pdf` · `excel-to-pdf` · `html-to-pdf` |
+  | Convert from PDF | `pdf-to-jpg` · `pdf-to-word` · `pdf-to-powerpoint` · `pdf-to-excel` · `pdf-to-pdfa` |
+  | Edit PDF | `rotate` · `page-numbers` · `watermark` · `crop` · `edit` · `forms` |
+  | PDF Security | `unlock` · `protect` · `sign` · `redact` · `compare` |
+
+- **Header menu:** the **Tools** dropdown has an *Audio* section and a *PDF tools · Coming soon* section (PDF Editor + one link per group to `/tools#<group>`), plus **Browse all tools**. Mobile menus get a **PDF Tools · Soon** entry from `TOOL_LINKS`.
+- **Icons:** `src/components/nav/PdfIcon.tsx` (lucide). To launch a tool, build its page under `src/app/tools/pdf/` and drop the badge for that slug.
+
+## Site pages: Privacy, Terms, Contact
+
+| Route | What |
+|---|---|
+| `/privacy` | Privacy Policy: data collected, cookies (essential, preferences, analytics, marketing), audio deleted after 1 h, retention, account deletion, contact |
+| `/terms` | Terms of Service: accounts, your content, acceptable use, tools/AI, plans, deletion, liability |
+| `/contact` | Contact form (name, email, message) → `POST /rb-api/contact` → email to `ADMIN_EMAIL` |
+
+- **Template:** Privacy and Terms carry a visible *"Template — pending owner review"* note. Review the text before launch.
+- **Shared frame:** `src/components/site/SiteShell.tsx` (glass header with the Tools menu, centred 1180 px column, legal footer) + `pages.module.css`. Legal layout: `LegalPage.tsx` (sticky table of contents). CSS modules only, no inline styles (CSP).
+- **Contact form:** `ContactForm.tsx`. Client checks first (name ≥ 2, valid email, message ≥ 10, max 5000), then shows the API's field errors. A hidden **honeypot** field (`website`) is sent with every request; the API drops bot submissions silently. **429** after 5 messages per hour per IP shows a friendly wait message.
+- **Footer:** Privacy · Terms · Contact on the landing page, the audio tool and every page above.
+
+## Cursor and text selection
+
+- The sign-in / create-account slider panel used to set `cursor: pointer` and `user-select: none` on the whole half of the card, so the hand showed everywhere and text could not be selected. Now the panel has a normal cursor and selectable text; only its **Sign in / Sign up** button is a pointer and switches sides (touch swipe still works; a mouse drag selects text).
+- The admin sign-in panel's `.ov.ovStatic` override never matched (CSS modules hash `.ov` per file). It is now `.ovStatic.ovStatic`.
+
+## Removed: local editor & demo login
+
+- The sign-in page no longer offers **Continue with demo account** or **Local editor**, and the sidebar's **Editor demo** link is gone. `src/lib/localDemo.ts` and every `local-demo` branch in the editor were deleted.
+- Old links `/user/editor/local-demo` and `/editor/local-demo` redirect to `/user/dashboard`. The backend `POST /auth/demo` stays 404 unless explicitly enabled.
+
 ## Layout containers
 
 All main pages use one centered content width aligned with the header: landing and tool pages 1180 px, user dashboard `max-w-[1180px] mx-auto`, admin pages `.admin-main > *` capped at 1180 px. Checked at 1920, 1536, 1440, 1280, 1160, 1024 and 375 px (no horizontal overflow, no overlaps). The editor layout is unchanged.
@@ -175,7 +221,24 @@ Template picked before sign-in + free plan already full: `POST /resumes` answers
 
 At ≤ 720 px the editor keeps the real A4 / Letter paper width inside `.editor-canvas-scale` and shrinks it with the zoom (45% at 375 px). A `width: 100%` there used to feed back through the resize observer until the page was a ~59 px sliver (BUG-1328).
 
-`/login?next=...` is parsed by `parseLoginNext()` in `src/lib/loginNext.ts`. `next=template&tpl=<id>` opens the editor with that template; any other `next` must be a safe relative path (starts with one `/`, no `//`, no backslash, no scheme), otherwise the user goes to the dashboard. Password login **and** Demo login both use it.
+`/login?next=...` is parsed by `parseLoginNext()` in `src/lib/loginNext.ts`. `next=template&tpl=<id>` opens the editor with that template; any other `next` must be a safe relative path (starts with one `/`, no `//`, no backslash, no scheme), otherwise the user goes to the dashboard. Every sign-in path uses it.
+
+## Sign-in: Google, Facebook and magic code
+
+`/login` and `/register` show **Continue with Google / Facebook / Email** under the form (`SsoButtons.tsx`; Email opens the magic-code panel). Buttons are only shown for providers that `GET /rb-api/auth/providers` reports as configured, so with no keys in the backend `.env` they stay hidden.
+
+- **Google / Facebook**: the button is a plain link to `/rb-api/auth/oauth/<provider>/start?intent=login|signup`. The backend does the whole OAuth flow (PKCE, state + nonce) and comes back to `/auth/callback#code=<one-time code>`. `AuthCallback.tsx` swaps that code for a session (`POST /auth/oauth/exchange`) and finishes like a password login (`src/lib/finishSignIn.ts`, which also keeps `?next=` / a picked template). Errors land on `/login?oauth_error=<code>` with a friendly message.
+- **Magic code** (`MagicCodePanel.tsx`): "We will send you a magic code to sign in ✨". It sends a 6-digit code, valid 10 minutes, then shows one code box that auto-submits at 6 digits, with resend (30 s cooldown) and "Use a different email". On register the same panel creates the account. "Forgot password? Sign in with a magic code" on the login form opens it.
+
+## User menu and logout
+
+Signed in, every site header (landing, tools, dashboard top bar) shows `UserMenu`: avatar/initials, name, email, Dashboard, Settings, Log out. `/login` and `/register` show a "You're signed in as …" card instead of the forms. Log out calls `POST /auth/logout` (revokes the refresh token server-side), clears local tokens and goes to `/login`. User data comes from `useCurrentUser()` (`src/hooks/useCurrentUser.ts`, 30 s cache, refreshes an expired token once).
+
+## Day / Night theme
+
+The sun/moon button (`components/theme/ThemeToggle.tsx`) sits on the right of every header. The choice is saved in `localStorage.rb_theme`; first visits follow `prefers-color-scheme`. `public/theme-init.js` is loaded in `<head>` with the CSP nonce (an external file, no inline script) and sets `<html data-theme>` before first paint, so there is no flash. With no attribute the site is dark, as before.
+
+Light styles are CSS variables plus `:global(html[data-theme="light"]) …` blocks at the end of each module (landing, tools, auth, nav) and `src/app/theme.css` (dashboard shell). The resume editor and the resume templates are not themed. Switching animates colours for 450 ms (`rb-theme-anim`), and is instant with reduced motion.
 
 ## Fonts
 
@@ -198,3 +261,29 @@ Raleway and Montserrat are loaded once with `next/font/local` in `src/app/layout
 | Hero badges | Move with the figure (same parallax); below 1240 px they stack in a row under the figure. |
 
 Checked by `src/components/landing/aurora/landingPerf.test.ts` (part of the backend `npm test`).
+
+## Cookie consent and analytics
+
+- `src/components/consent/CookieConsent.tsx` (mounted in `app/layout.tsx`) shows the banner
+  (Accept all / Reject non-essential / Customize) and the preferences modal. The landing footer has a
+  **Cookie settings** link (`CookieSettingsLink`), and any code can call `openCookieSettings()`.
+- Categories: Essential (always on), Preferences, Analytics & performance (GA4), Marketing (placeholder,
+  no trackers yet).
+- The choice is stored in the first-party cookie `rb_consent` = `<version>.<p><a><m>.<anonId>.<unixSeconds>`
+  (6 months, SameSite=Lax). Bump `CONSENT_VERSION` in `src/lib/consent.ts` (and the backend copy) to ask
+  everyone again. Each choice is also sent to `POST /rb-api/consent` for the audit log.
+- Code that stores a preference (theme, language, editor settings) should check
+  `hasConsent("preferences")` from `src/lib/consent.ts` first.
+- **GA4:** set `NEXT_PUBLIC_GA_ID=G-XXXXXXX` at build time. Without it nothing is loaded and the CSP has no
+  Google hosts. With it, the CSP allows googletagmanager / google-analytics, and `gtag.js` is injected
+  only after analytics consent (withdrawing consent disables GA and deletes the `_ga*` cookies).
+- The banner never renders on `/print/*` and `/template-preview/*` (PDF and thumbnail renders).
+
+## Admin: Users & Activity, PDF & Templates
+
+- `/admin/activity`: every login with IP, city / region / country, device, browser, OS and time;
+  search, date range, country and device filters, CSV export, per-user login history.
+- `/admin/pdf`: the 12 built-in templates (enable/disable, reorder, rename, category, description,
+  featured, preview, usage counts), users' resumes (view / download PDF, delete), PDF export settings
+  and the admin audit log. Landing gallery changes come from `GET /template-settings`
+  (`src/lib/templateSettings.ts`).

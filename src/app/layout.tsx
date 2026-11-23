@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { headers } from "next/headers";
 import "./globals.css";
+import "./theme.css";
 import { ChunkReloadGuard } from "@/components/system/ChunkReloadGuard";
+import { CookieConsent } from "@/components/consent/CookieConsent";
 
 export const metadata: Metadata = {
   title: "ResumeBuilder",
@@ -37,12 +40,20 @@ const montserrat = localFont({
   fallback: ["Segoe UI", "system-ui", "sans-serif"],
 });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Day/Night: a tiny external script (CSP nonce, no inline code) sets <html data-theme> before first paint.
+  const nonce = (await headers()).get("x-nonce") || undefined;
   return (
     <html lang="en" className={`${raleway.variable} ${montserrat.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Must block first paint, or the page flashes the wrong theme. The file is ~400 bytes and cached. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/theme-init.js" nonce={nonce} />
+      </head>
       <body className="min-h-screen antialiased">
         <ChunkReloadGuard />
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

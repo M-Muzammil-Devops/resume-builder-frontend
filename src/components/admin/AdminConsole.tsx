@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  FileText,
   FileUp,
   LayoutDashboard,
   LogOut,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react";
 import { ApiError, apiFetch, getRefreshToken, getToken, logoutSession, refreshAdminCookie } from "@/lib/api";
 import { ADMIN_LOGIN_PATH, USER_HOME_PATH } from "@/lib/adminSession";
+import { UsersActivityPanel } from "./UsersActivityPanel";
+import { PdfControlPanel } from "./PdfControlPanel";
 
 type Stats = {
   totals: {
@@ -65,16 +68,32 @@ const DEPTS = [
   "General",
 ];
 
-export type AdminTab = "overview" | "templates" | "users";
+export type AdminTab = "overview" | "templates" | "users" | "activity" | "pdf";
 type Tab = AdminTab;
 
 /** BUG-1220: each tab has its own URL (/admin, /admin/templates, /admin/users). */
-const TAB_PATH: Record<Tab, string> = { overview: "/admin", templates: "/admin/templates", users: "/admin/users" };
+const TAB_PATH: Record<Tab, string> = {
+  overview: "/admin",
+  templates: "/admin/templates",
+  users: "/admin/users",
+  activity: "/admin/activity",
+  pdf: "/admin/pdf",
+};
 const NAV = [
   ["overview", "Overview", LayoutDashboard],
-  ["templates", "Templates", FileUp],
+  ["activity", "Users & Activity", Activity],
+  ["pdf", "PDF & Templates", FileText],
+  ["templates", "Template uploads", FileUp],
   ["users", "Users", Users],
 ] as const;
+
+const TAB_HEADING: Record<Tab, [string, string]> = {
+  overview: ["Dashboard", "Monitor users, locations, and landing templates"],
+  activity: ["Users & Activity", "Every sign-in with location, device and time"],
+  pdf: ["PDF & Templates", "Built-in templates, user resumes, export settings and the admin audit log"],
+  templates: ["Uploaded templates", "Templates uploaded as PDF + preview"],
+  users: ["Users", "Accounts and their last sign-in"],
+};
 
 function tabFromPath(path: string): Tab {
   const hit = (Object.keys(TAB_PATH) as Tab[]).find((t) => TAB_PATH[t] === path.replace(/\/+$/, ""));
@@ -319,8 +338,8 @@ export default function AdminConsole({ initialTab = "overview" }: { initialTab?:
       <main className="admin-main">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-sm text-slate-400">Monitor users, locations, and landing templates</p>
+            <h1 className="text-2xl font-bold text-white">{TAB_HEADING[tab][0]}</h1>
+            <p className="text-sm text-slate-400">{TAB_HEADING[tab][1]}</p>
           </div>
           {stats && (
             <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
@@ -334,6 +353,9 @@ export default function AdminConsole({ initialTab = "overview" }: { initialTab?:
             {error}
           </div>
         )}
+
+        {tab === "activity" && <UsersActivityPanel />}
+        {tab === "pdf" && <PdfControlPanel />}
 
         {tab === "overview" && (
           <div className="space-y-6">

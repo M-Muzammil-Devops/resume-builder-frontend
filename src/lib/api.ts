@@ -88,6 +88,14 @@ async function refreshSession() {
   return true;
 }
 
+/** One shared refresh for callers that hit /auth/* routes (those skip the automatic retry). */
+export function tryRefreshSession(): Promise<boolean> {
+  refreshFlight ??= refreshSession().finally(() => {
+    refreshFlight = null;
+  });
+  return refreshFlight;
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;

@@ -30,3 +30,9 @@ uploads/
 *.p12
 .cursor/
 next-env.d.ts.bak
+
+# backups / secrets (never commit)
+*.sql.gz
+ADMIN_PASSWORD*.txt
+data/geoip/
+.next/

@@ -40,7 +40,10 @@ import {
 } from "./data";
 import { onScrollFrame, useAuroraMotion, useFloatPause, useHeroPointer, useReducedMotion } from "./useAuroraMotion";
 import { ToolsMenu } from "@/components/nav/ToolsMenu";
+import { HeaderAccount } from "@/components/nav/HeaderAccount";
 import { TOOL_LINKS } from "@/components/nav/tools";
+import { CookieSettingsLink } from "@/components/consent/CookieSettingsLink";
+import { applyTemplateSettings, fetchTemplateSettings, type TemplateSetting } from "@/lib/templateSettings";
 import s from "./LandingAurora.module.css";
 
 const cx = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(" ");
@@ -130,6 +133,17 @@ export function LandingAurora() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remote, setRemote] = useState<LandingTemplate[]>([]);
+  // Admin overrides for the built-in templates (enable/disable, order, names, featured).
+  const [tplSettings, setTplSettings] = useState<TemplateSetting[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchTemplateSettings().then((rows) => {
+      if (!cancelled) setTplSettings(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [category, setCategory] = useState("All");
   const [photo, setPhoto] = useState<PhotoFilter>("all");
   const [columns, setColumns] = useState<ColumnFilter>("all");
@@ -262,8 +276,8 @@ export function LandingAurora() {
       source: "admin",
       category: categoryOf(item.layoutKey, item.department),
     }));
-    return [...remoteMapped, ...staticMapped];
-  }, [remote]);
+    return applyTemplateSettings([...remoteMapped, ...staticMapped], tplSettings);
+  }, [remote, tplSettings]);
 
   const categories = useMemo(() => ["All", ...Array.from(new Set(cards.map((item) => item.category)))], [cards]);
   const templates = useMemo(
@@ -464,16 +478,7 @@ export function LandingAurora() {
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
           </nav>
-          {signedIn === null ? (
-            <span className={s.authSlot} aria-hidden="true" />
-          ) : signedIn ? (
-            <Link href="/user/dashboard" className={cx(s.btn, s.btnSm, s.navCta)}>Dashboard</Link>
-          ) : (
-            <>
-              <Link href="/login" className={s.login}>Log in</Link>
-              <Link href="/register" className={cx(s.btn, s.btnSm, s.navCta)}>Get started</Link>
-            </>
-          )}
+          <HeaderAccount loginClassName={s.login} ctaClassName={cx(s.btn, s.btnSm, s.navCta)} />
           <button
             type="button"
             className={s.burger}
@@ -940,6 +945,7 @@ export function LandingAurora() {
               <Link href="/privacy">Privacy</Link>
               <Link href="/terms">Terms</Link>
               <Link href="/contact">Contact</Link>
+              <CookieSettingsLink />
             </nav>
           </div>
         </div>

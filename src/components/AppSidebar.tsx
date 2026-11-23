@@ -6,7 +6,6 @@ import clsx from "clsx";
 import {
   AudioLines,
   Briefcase,
-  FileText,
   LayoutDashboard,
   LogOut,
   Rocket,
@@ -70,14 +69,6 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
         >
           <AudioLines size={18} />
           Noise Remover
-        </Link>
-        <Link
-          href="/user/editor/local-demo"
-          onClick={onNavigate}
-          className="app-nav-link mt-4 flex items-center gap-3 rounded-lg border border-teal-500/30 bg-teal-500/10 px-3 py-2.5 text-sm font-medium text-teal-200 hover:bg-teal-500/20"
-        >
-          <FileText size={18} />
-          Editor demo
         </Link>
       </nav>
       <button

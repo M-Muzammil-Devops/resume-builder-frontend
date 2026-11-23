@@ -32,11 +32,15 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
 RUN npm run build
 
 # ---------- runtime ----------
-FROM ${NODE_IMAGE} AS runtime
-RUN apk add --no-cache libc6-compat tini
+# Plain Alpine + the distro nodejs package (about 85 MB) instead of node:22-alpine (about 160 MB).
+# The app is built on node:22-alpine (musl) so native modules (sharp) match this musl runtime.
+FROM alpine:3.22 AS runtime
+RUN apk add --no-cache nodejs tini \
+ && addgroup -g 1000 node && adduser -D -u 1000 -G node node
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
+    NODE_OPTIONS=--max-old-space-size=192 \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
     API_INTERNAL_URL=http://backend:4000 \
@@ -47,6 +51,8 @@ COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 # Lifts Node's 5-minute request timeout so slow 100 MB audio uploads are not cut off.
 COPY --from=build --chown=node:node /app/server-timeouts.cjs ./server-timeouts.cjs
+# No source maps in the runtime image (they are never served and only add size).
+RUN find . -name "*.map" -type f -delete
 
 USER node
 EXPOSE 3000

@@ -46,7 +46,6 @@ export function SharePanel({ documentId }: { documentId: string }) {
   }
 
   useEffect(() => {
-    if (documentId === "local-demo") return;
     let cancel = false;
     apiFetch<{ resume: { shareEnabled?: boolean; shareToken?: string | null; shareExpiresAt?: string | null } }>(
       `/resumes/${documentId}`
@@ -64,10 +63,6 @@ export function SharePanel({ documentId }: { documentId: string }) {
   }, [documentId]);
 
   async function toggleShare() {
-    if (documentId === "local-demo") {
-      setShareError("Save the resume before sharing.");
-      return;
-    }
     const next = !shareOn;
     setShareOn(next);
     setShareError(null);

@@ -1508,7 +1508,9 @@
 }
 .foot nav {
   display: flex;
-  gap: 26px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 26px;
 }
 .foot nav a:hover {
   color: #fff;
@@ -1740,4 +1742,265 @@
 }
 @media (prefers-reduced-motion: reduce) and (max-width: 767px) {
   .pro { transform: none; }
+}
+
+/* ---------- Day mode (html[data-theme="light"]) ---------- */
+:global(html[data-theme="light"]) .root {
+  --ink: #0b1230;
+  --mut: #4b5679;
+  --glow: rgba(37, 99, 235, 0.28);
+  background-color: #f6f8ff;
+  background-image:
+    radial-gradient(900px 640px at 6% 2%, rgba(96, 165, 250, 0.32), transparent 65%),
+    radial-gradient(800px 600px at 96% 4%, rgba(232, 121, 249, 0.2), transparent 65%),
+    radial-gradient(700px 500px at 60% 12%, rgba(34, 211, 238, 0.14), transparent 65%),
+    radial-gradient(800px 700px at 0% 38%, rgba(167, 139, 250, 0.18), transparent 65%),
+    radial-gradient(900px 600px at 95% 55%, rgba(34, 211, 238, 0.14), transparent 65%),
+    radial-gradient(900px 700px at 70% 88%, rgba(232, 121, 249, 0.16), transparent 65%),
+    linear-gradient(180deg, #f8faff, #f1f4ff 40%, #f5f3ff 70%, #f8faff);
+}
+:global(html[data-theme="light"]) .grain {
+  opacity: 0.35;
+}
+:global(html[data-theme="light"]) .navIn {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.84));
+  border-color: rgba(99, 102, 241, 0.16);
+  box-shadow: inset 0 1px 0 #fff, 0 16px 36px rgba(30, 41, 99, 0.1);
+}
+:global(html[data-theme="light"]) .navScrolled .navIn {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.9));
+  box-shadow: inset 0 1px 0 #fff, 0 20px 44px rgba(30, 41, 99, 0.14);
+}
+:global(html[data-theme="light"]) .links {
+  color: #334067;
+}
+:global(html[data-theme="light"]) .links a:hover {
+  color: #1d3fa8;
+}
+:global(html[data-theme="light"]) .login {
+  color: #0b1230;
+}
+:global(html[data-theme="light"]) .burger {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.14);
+  color: #0b1230;
+}
+:global(html[data-theme="light"]) .menuLabel {
+  color: #2563eb;
+}
+:global(html[data-theme="light"]) .menu.menuOpen {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 255, 0.98));
+  border-color: rgba(99, 102, 241, 0.16);
+  box-shadow: 0 24px 50px rgba(30, 41, 99, 0.16);
+  color: #0b1230;
+}
+:global(html[data-theme="light"]) .menu a:hover {
+  background: #eef2ff;
+}
+:global(html[data-theme="light"]) .ghost {
+  color: #1e1b6b;
+  border-color: rgba(67, 56, 202, 0.35);
+  background: linear-gradient(180deg, #ffffff, #eef2ff);
+  box-shadow: inset 0 1px 0 #fff, 0 5px 0 rgba(67, 56, 202, 0.18), 0 14px 24px rgba(30, 41, 99, 0.1);
+}
+:global(html[data-theme="light"]) .ghost:hover {
+  background: linear-gradient(180deg, #ffffff, #e0e7ff);
+}
+:global(html[data-theme="light"]) .gridfloor {
+  opacity: 0.5;
+}
+:global(html[data-theme="light"]) .eyebrow {
+  color: #1d4ed8;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.16), rgba(99, 102, 241, 0.1));
+  border-color: rgba(37, 99, 235, 0.28);
+  box-shadow: none;
+}
+:global(html[data-theme="light"]) .grad {
+  background: linear-gradient(100deg, #0284c7, #6d28d9 45%, #c026d3);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+:global(html[data-theme="light"]) .lead {
+  color: #3c4770;
+}
+:global(html[data-theme="light"]) .points {
+  color: #2a3566;
+}
+:global(html[data-theme="light"]) .chip {
+  color: #0b1230;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(238, 242, 255, 0.95));
+  border-color: rgba(99, 102, 241, 0.2);
+  box-shadow: inset 0 1px 0 #fff, 0 16px 30px rgba(30, 41, 99, 0.14);
+}
+:global(html[data-theme="light"]) .chip small {
+  color: #4b5679;
+}
+:global(html[data-theme="light"]) .kicker {
+  color: #2563eb;
+}
+:global(html[data-theme="light"]) .glass {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(246, 248, 255, 0.9));
+  border-color: rgba(99, 102, 241, 0.14);
+  box-shadow: inset 0 1px 0 #fff, 0 24px 50px rgba(30, 41, 99, 0.1);
+  color: #0b1230;
+}
+:global(html[data-theme="light"]) .glass::before {
+  background: linear-gradient(130deg, rgba(255, 255, 255, 0.6), transparent 30%);
+}
+:global(html[data-theme="light"]) .num {
+  color: rgba(30, 41, 99, 0.08);
+}
+:global(html[data-theme="light"]) .bubble {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: rgba(99, 102, 241, 0.2);
+  color: #0b1230;
+}
+:global(html[data-theme="light"]) .error {
+  color: #9f1239;
+  background: #fff1f2;
+  border-color: #fecdd3;
+}
+:global(html[data-theme="light"]) .tab {
+  color: #334067;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(99, 102, 241, 0.18);
+}
+:global(html[data-theme="light"]) .tab:hover {
+  background: #fff;
+}
+:global(html[data-theme="light"]) .seg {
+  background: rgba(30, 41, 99, 0.06);
+  box-shadow: inset 0 2px 5px rgba(30, 41, 99, 0.1);
+}
+:global(html[data-theme="light"]) .seg button.on {
+  background: #fff;
+  color: #1e1b6b;
+  box-shadow: 0 1px 2px rgba(30, 41, 99, 0.18);
+}
+:global(html[data-theme="light"]) .tc {
+  box-shadow: 0 30px 60px rgba(30, 41, 99, 0.2), 0 0 0 1px rgba(99, 102, 241, 0.12);
+}
+:global(html[data-theme="light"]) .tc[data-o="0"] {
+  box-shadow: 0 40px 80px rgba(30, 41, 99, 0.25), 0 0 0 2px rgba(37, 99, 235, 0.45), 0 0 50px rgba(56, 189, 248, 0.3);
+}
+:global(html[data-theme="light"]) .tplInfo .tplCount {
+  color: #2563eb;
+}
+:global(html[data-theme="light"]) .round {
+  color: #1e1b6b;
+  background: linear-gradient(180deg, #fff, #eef2ff);
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: inset 0 1px 0 #fff, 0 4px 0 rgba(67, 56, 202, 0.16), 0 12px 20px rgba(30, 41, 99, 0.12);
+}
+:global(html[data-theme="light"]) .dots i {
+  background: rgba(30, 41, 99, 0.18);
+}
+:global(html[data-theme="light"]) .ring {
+  background: conic-gradient(#0891b2 0 92%, rgba(30, 41, 99, 0.1) 0);
+  box-shadow: 0 20px 50px rgba(8, 145, 178, 0.18);
+}
+:global(html[data-theme="light"]) .ring::before {
+  background: radial-gradient(circle at 35% 30%, #ffffff, #eef2ff);
+  box-shadow: inset 0 3px 8px rgba(30, 41, 99, 0.12);
+}
+:global(html[data-theme="light"]) .kw li {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(5, 150, 105, 0.35);
+  color: #065f46;
+}
+:global(html[data-theme="light"]) .note {
+  color: #5a6486;
+}
+:global(html[data-theme="light"]) .before {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+:global(html[data-theme="light"]) .after {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+  box-shadow: 0 16px 30px rgba(30, 41, 99, 0.08);
+}
+:global(html[data-theme="light"]) .acts span {
+  background: rgba(30, 41, 99, 0.05);
+  border-color: rgba(30, 41, 99, 0.12);
+}
+:global(html[data-theme="light"]) .stat dd {
+  background: linear-gradient(180deg, #1e1b6b, #4f46e5);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+:global(html[data-theme="light"]) .toggle div {
+  background: rgba(30, 41, 99, 0.06);
+  box-shadow: inset 0 2px 5px rgba(30, 41, 99, 0.1);
+}
+:global(html[data-theme="light"]) .price ul {
+  color: #2a3566;
+}
+:global(html[data-theme="light"]) .q h3 i {
+  background: rgba(30, 41, 99, 0.08);
+}
+:global(html[data-theme="light"]) .foot {
+  border-top-color: rgba(30, 41, 99, 0.12);
+}
+:global(html[data-theme="light"]) .foot nav a:hover {
+  color: #1d3fa8;
+}
+:global(html[data-theme="light"]) .modalBack {
+  background: rgba(15, 23, 42, 0.45);
+}
+:global(html[data-theme="light"]) .modal {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(244, 246, 255, 0.98));
+  border-color: rgba(99, 102, 241, 0.16);
+  box-shadow: 0 40px 90px rgba(30, 41, 99, 0.25);
+  color: #0b1230;
+}
+:global(html[data-theme="light"]) .modalX {
+  background: rgba(30, 41, 99, 0.06);
+  border-color: rgba(30, 41, 99, 0.16);
+  color: #0b1230;
+}
+:global(html[data-theme="light"]) .root :focus-visible {
+  outline-color: #2563eb;
+}
+/* Brand-gradient blocks keep white text in day mode. */
+:global(html[data-theme="light"]) .final,
+:global(html[data-theme="light"]) .howChar {
+  --ink: #ffffff;
+  --mut: #e0e7ff;
+  color: #ffffff;
+}
+:global(html[data-theme="light"]) .glass.pro {
+  --ink: #ffffff;
+  --mut: #e0e7ff;
+  color: #ffffff;
+  background: var(--ov);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 40px 80px rgba(76, 29, 149, 0.3);
+}
+:global(html[data-theme="light"]) .final {
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 40px 80px rgba(76, 29, 149, 0.28);
+}
+
+/* Small phones: brand + theme toggle + user menu + burger must fit on one row (also at 110% zoom). */
+@media (max-width: 480px) {
+  .navIn { gap: 10px; }
+  .brand { gap: 8px; font-size: 16px; min-width: 0; }
+  .mark { width: 34px; height: 34px; flex: none; }
+  .burger { flex: none; width: 40px; height: 40px; }
+}
+@media (max-width: 360px) {
+  .navIn { padding: 8px 8px 8px 10px; }
+  .brand { font-size: 15px; }
+  .mark { width: 32px; height: 32px; }
+}
+/* Narrow desktop (incl. 1024px at 110% zoom): links + theme toggle + Log in + CTA stay on one line. */
+@media (min-width: 900px) and (max-width: 1100px) {
+  .navIn { gap: 16px; }
+  .links { gap: 16px; }
+  .links a,
+  .links button,
+  .login,
+  .navCta { white-space: nowrap; }
 }

@@ -6,8 +6,8 @@ import localFont from "next/font/local";
 import { useEffect, useRef, useState } from "react";
 import { Check, Menu, X } from "lucide-react";
 import { getToken } from "@/lib/api";
-import type { AudioMode } from "@/lib/audioApi";
 import { ToolsMenu } from "@/components/nav/ToolsMenu";
+import { HeaderAccount } from "@/components/nav/HeaderAccount";
 import { TOOL_LINKS } from "@/components/nav/tools";
 import { AudioCleaner } from "./AudioCleaner";
 import s from "./AudioTool.module.css";
@@ -32,30 +32,23 @@ const auroraHead = localFont({
 
 const FORMATS = ["MP3", "WAV", "M4A", "AAC", "OGG", "OPUS", "FLAC", "WEBM", "WMA", "AIFF", "AMR", "AC3", "CAF", "MP4", "MOV", "MKV"];
 
-const COPY: Record<"noise" | "voice", { eyebrow: string; title: [string, string]; lead: string; chipA: [string, string]; chipB: [string, string] }> = {
-  noise: {
-    eyebrow: "✦ Tools · AI audio studio",
-    title: ["Remove background noise from ", "any audio"],
-    lead: "Upload a noisy recording — café chatter, fan hum, traffic, echo — and get back a clean, clear voice in seconds.",
-    chipA: ["Noise −40 dB", "Background removed"],
-    chipB: ["Voice kept natural", "AI speech model"],
-  },
-  voice: {
-    eyebrow: "✦ Tools · AI voice cleaner",
-    title: ["Make any voice sound ", "studio clean"],
-    lead: "Noise removal, loudness to −16 LUFS and a gentle voice EQ in one click — ready for podcasts, interviews and videos.",
-    chipA: ["−16 LUFS", "Podcast loudness"],
-    chipB: ["Voice EQ + de-ess", "Clear, warm speech"],
-  },
+// Remove Background Noise is the only audio tool (the AI Voice Cleaner page was retired).
+const COPY = {
+  eyebrow: "✦ Tools · AI audio studio",
+  title: ["Remove background noise from ", "any audio"] as const,
+  lead: "Upload a noisy recording — café chatter, fan hum, traffic, echo — and get back a clean, clear voice in seconds.",
+  chipA: ["Noise −40 dB", "Background removed"] as const,
+  chipB: ["Voice kept natural", "AI speech model"] as const,
 };
+const TOOL_PATH = "/tools/audio-noise-remover";
 
-export function AudioToolPage({ mode }: { mode: Exclude<AudioMode, "conversation"> }) {
+export function AudioToolPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navRef = useRef<HTMLElement>(null);
-  const toolPath = mode === "voice" ? "/tools/ai-voice-cleaner" : "/tools/audio-noise-remover";
-  const copy = COPY[mode];
+  const toolPath = TOOL_PATH;
+  const copy = COPY;
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setSignedIn(Boolean(getToken())));
@@ -98,14 +91,11 @@ export function AudioToolPage({ mode }: { mode: Exclude<AudioMode, "conversation
             <ToolsMenu />
             <Link href="/#pricing">Pricing</Link>
           </nav>
-          {signedIn ? (
-            <Link href="/user/dashboard" className={cx(s.btn, s.btnSm, s.navCta)}>Dashboard</Link>
-          ) : (
-            <>
-              <Link href={`/login?next=${encodeURIComponent(toolPath)}`} className={s.login}>Log in</Link>
-              <Link href="/register" className={cx(s.btn, s.btnSm, s.navCta)}>Get started</Link>
-            </>
-          )}
+          <HeaderAccount
+            loginClassName={s.login}
+            ctaClassName={cx(s.btn, s.btnSm, s.navCta)}
+            loginHref={`/login?next=${encodeURIComponent(toolPath)}`}
+          />
           <button
             type="button"
             className={s.burger}
@@ -197,9 +187,9 @@ export function AudioToolPage({ mode }: { mode: Exclude<AudioMode, "conversation
           </div>
         </section>
 
-        <section id="tool" className={s.tool} aria-label={mode === "voice" ? "AI Voice Cleaner" : "Audio Noise Remover"}>
+        <section id="tool" className={s.tool} aria-label="Audio Noise Remover">
           <div className={s.wrap}>
-            <AudioCleaner initialMode={mode} signedIn={signedIn} toolPath={toolPath} />
+            <AudioCleaner initialMode="noise" signedIn={signedIn} toolPath={toolPath} />
             <p className={s.privacy}>🔒 Files are processed on our server, never shared, and deleted automatically after 1 hour.</p>
           </div>
         </section>

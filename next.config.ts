@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
       { source: "/dashboard", destination: "/user/dashboard", permanent: false },
       { source: "/settings", destination: "/user/settings", permanent: false },
       { source: "/jobs/:path*", destination: "/user/jobs/:path*", permanent: false },
+      { source: "/editor/local-demo", destination: "/user/dashboard", permanent: false },
       { source: "/editor/:id", destination: "/user/editor/:id", permanent: false },
       { source: "/cover-letters/:id", destination: "/user/cover-letters/:id", permanent: false },
       // BUG-1223: short and list paths people type or bookmark.
@@ -41,6 +42,10 @@ const nextConfig: NextConfig = {
       { source: "/user/tracker", destination: "/user/jobs/tracker", permanent: false },
       { source: "/cover-letters", destination: "/user/dashboard#cover-letters", permanent: false },
       { source: "/user/cover-letters", destination: "/user/dashboard#cover-letters", permanent: false },
+      // The AI Voice Cleaner tool was retired; old links land on Remove Background Noise.
+      { source: "/tools/ai-voice-cleaner", destination: "/tools/audio-noise-remover", permanent: true },
+      // The browser-only "local editor" demo was removed.
+      { source: "/user/editor/local-demo", destination: "/user/dashboard", permanent: false },
     ];
   },
 };

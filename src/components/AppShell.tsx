@@ -2,6 +2,10 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { UserMenu } from "@/components/nav/UserMenu";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import s from "./AppShell.module.css";
 
 type Props = {
   children: ReactNode;
@@ -10,6 +14,7 @@ type Props = {
 
 export function AppShell({ children, mainClassName }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const user = useCurrentUser();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -29,9 +34,16 @@ export function AppShell({ children, mainClassName }: Props) {
         <AppSidebar onNavigate={() => setMenuOpen(false)} />
       </div>
       <div className={["app-main", mainClassName].filter(Boolean).join(" ")}>
-        <button type="button" className="app-menu-btn" aria-label="Open menu" aria-expanded={menuOpen} aria-controls="app-sidebar" onClick={() => setMenuOpen((open) => !open)}>
-          Menu
-        </button>
+        {/* Top bar: mobile menu button (left), Day/Night toggle + account menu (right). */}
+        <div className={s.topbar}>
+          <button type="button" className="app-menu-btn" aria-label="Open menu" aria-expanded={menuOpen} aria-controls="app-sidebar" onClick={() => setMenuOpen((open) => !open)}>
+            Menu
+          </button>
+          <div className={s.right}>
+            <ThemeToggle />
+            {user ? <UserMenu user={user} /> : <span className={s.slot} aria-hidden="true" />}
+          </div>
+        </div>
         <div className="app-main-inner">{children}</div>
       </div>
     </div>

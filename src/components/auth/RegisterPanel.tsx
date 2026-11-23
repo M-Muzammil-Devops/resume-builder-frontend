@@ -11,6 +11,9 @@ import {
 } from "@/components/auth/AuroraFields";
 import { apiFetch, setSession } from "@/lib/api";
 import { continueAfterAuth } from "@/lib/continueAfterAuth";
+import { finishSignIn } from "@/lib/finishSignIn";
+import { MagicCodePanel } from "@/components/auth/MagicCodePanel";
+import { SsoButtons } from "@/components/auth/SsoButtons";
 import { passwordError } from "@/lib/passwordPolicy";
 import { LANDING_TEMPLATES, PENDING_TEMPLATE_KEY } from "@/lib/landingTemplates";
 import s from "./AuthSlider.module.css";
@@ -29,6 +32,11 @@ export function RegisterPanel({ onSwitch }: { onSwitch: () => void }) {
   const [loading, setLoading] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
+  const [view, setView] = useState<"password" | "magic">("password");
+
+  function focusTitle() {
+    requestAnimationFrame(() => document.getElementById("register-title")?.focus({ preventScroll: true }));
+  }
 
   const wantsTemplate = search.get("next") === "template";
   const tplId = search.get("tpl");
@@ -87,6 +95,30 @@ export function RegisterPanel({ onSwitch }: { onSwitch: () => void }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not resend the email");
     }
+  }
+
+  if (view === "magic") {
+    return (
+      <MagicCodePanel
+        intent="signup"
+        titleId="register-title"
+        idPrefix="reg"
+        initialEmail={email}
+        name={name}
+        onBack={() => {
+          setView("password");
+          focusTitle();
+        }}
+        backLabel="Back to create account"
+        onSession={async (token, refreshToken) => {
+          if (wantsTemplate && tplId) {
+            const tpl = LANDING_TEMPLATES.find((t) => t.id === tplId);
+            if (tpl) sessionStorage.setItem(PENDING_TEMPLATE_KEY, JSON.stringify(tpl));
+          }
+          await finishSignIn((href) => router.push(href), search, token, refreshToken);
+        }}
+      />
+    );
   }
 
   if (pendingEmail) {
@@ -163,6 +195,15 @@ export function RegisterPanel({ onSwitch }: { onSwitch: () => void }) {
         <AuroraError message={error} />
         <AuroraSubmit loading={loading} idleLabel="Create account" loadingLabel="Creating…" />
       </form>
+      <SsoButtons
+        intent="signup"
+        idPrefix="reg"
+        onEmail={() => {
+          setError(null);
+          setView("magic");
+          focusTitle();
+        }}
+      />
       <p className={s.foot}>
         Already have an account?{" "}
         <button type="button" className={s.linkBtn} onClick={onSwitch}>

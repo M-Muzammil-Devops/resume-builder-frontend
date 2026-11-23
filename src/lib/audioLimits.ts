@@ -17,7 +17,7 @@ export function progressHint(job: { status: string; chunks?: { done: number; tot
 }
 
 
-export type CleanMode = "noise" | "conversation" | "voice";
+export type CleanMode = "noise" | "conversation";
 
 /**
  * BUG-1340/1343: most any sound is turned down, in dB. Same table as dfAttenLimit() in the API

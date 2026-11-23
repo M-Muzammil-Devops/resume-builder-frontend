@@ -12,7 +12,6 @@ import {
 import { EditorShell } from "@/components/editor/EditorShell";
 import { SplashLoader } from "@/components/editor/SplashLoader";
 import { ApiError, apiFetch } from "@/lib/api";
-import { loadLocalDemoResume } from "@/lib/localDemo";
 import { useEditorStore } from "@/store/editorStore";
 
 /** Older resumes may lack chrome fields — fill from landing preset without wiping text. */
@@ -70,15 +69,6 @@ export default function EditorPage() {
       setLoading(true);
       setError(null);
       try {
-        if (id === "local-demo") {
-          if (!cancelled) {
-            // Persist Apply / edits across refresh (sample only used on first visit)
-            setDocument(hydrateTemplateChrome(loadLocalDemoResume()));
-            setLoading(false);
-          }
-          return;
-        }
-
         const res = await apiFetch<{ resume: ResumeDocument }>(`/resumes/${id}`);
         if (!cancelled) setDocument(hydrateTemplateChrome(res.resume));
       } catch (err) {

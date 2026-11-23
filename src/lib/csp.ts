@@ -20,12 +20,26 @@ function styleSources(nonce: string, dev: boolean): string {
   return [`'nonce-${nonce}'`, ...NEXT_BUILTIN_STYLE_HASHES.map((h) => `'${h}'`)].join(" ");
 }
 
-export function buildCsp(nonce: string, opts: { dev?: boolean } = {}): string {
+/** Google Analytics 4 hosts, allowed only when a GA4 id is configured (NEXT_PUBLIC_GA_ID). */
+export const GA_SCRIPT_HOSTS = ["https://www.googletagmanager.com"];
+export const GA_CONNECT_HOSTS = [
+  "https://www.google-analytics.com",
+  "https://*.google-analytics.com",
+  "https://*.analytics.google.com",
+  "https://www.googletagmanager.com",
+];
+
+export function buildCsp(nonce: string, opts: { dev?: boolean; gaId?: string } = {}): string {
   const dev = Boolean(opts.dev);
+  const ga = Boolean(opts.gaId && /^G-[A-Z0-9]{4,20}$/.test(opts.gaId.trim()));
+  const gaScript = ga ? ` ${GA_SCRIPT_HOSTS.join(" ")}` : "";
+  const gaConnect = ga ? ` ${GA_CONNECT_HOSTS.join(" ")}` : "";
   const directives = [
     "default-src 'self'",
     // React dev tooling needs eval in `next dev` only. Production never gets it.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
+    // gtag.js is injected by the (nonce-trusted) app bundle only after analytics consent;
+    // the host is listed for browsers without 'strict-dynamic'.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${gaScript}${dev ? " 'unsafe-eval'" : ""}`,
     // BUG-1404: <style> elements need this request's nonce or one of the hashes of Next's own
     // built-in error/404 styles (those <style> tags never carry a nonce). <link> stylesheets are 'self'.
     // `next dev` injects un-nonced HMR styles, so only dev keeps inline styles allowed.
@@ -35,12 +49,12 @@ export function buildCsp(nonce: string, opts: { dev?: boolean } = {}): string {
     // 'unsafe-hashes' per value; React style props, GSAP and three.js set them at runtime, so
     // this is the narrowest workable option. Attributes cannot load resources or run script.
     "style-src-attr 'unsafe-inline'",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob:${gaConnect}`,
     // Resume and UI fonts are self-hosted (public/fonts, next/font).
     "font-src 'self' data:",
     // Audio tool: Before/After players play fetched previews as blob: URLs.
     "media-src 'self' blob:",
-    "connect-src 'self'",
+    `connect-src 'self'${gaConnect}`,
     "object-src 'none'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

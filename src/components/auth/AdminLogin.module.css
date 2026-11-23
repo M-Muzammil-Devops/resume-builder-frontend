@@ -1,10 +1,11 @@
 /* Round 16: admin sign-in in the Midnight Aurora style. Shared look comes from AuthSlider.module.css;
    this file only adds the admin-only pieces (static panel, 3D shield, security chips). */
 
-/* The admin panel is decorative, not a switch: no pointer / hover lift from the slider. */
-.ov.ovStatic {
+/* The admin panel is decorative, not a switch: no pointer / hover lift from the slider.
+   (Was ".ov.ovStatic", which never matched: CSS modules hash ".ov" per file, so it pointed at nothing.) */
+.ovStatic.ovStatic {
   cursor: default;
-  user-select: auto;
+  user-select: text;
 }
 
 .eyebrow {

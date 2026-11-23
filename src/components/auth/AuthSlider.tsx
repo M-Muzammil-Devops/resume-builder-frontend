@@ -4,7 +4,11 @@ import Image from "next/image";
 import { KeyboardEvent, MouseEvent, PointerEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LoginPanel } from "@/components/auth/LoginPanel";
 import { RegisterPanel } from "@/components/auth/RegisterPanel";
+import { SignedInCard } from "@/components/auth/SignedInCard";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import s from "./AuthSlider.module.css";
+import m from "./AuthSso.module.css";
 
 export type AuthMode = "login" | "register";
 
@@ -19,6 +23,7 @@ const SWIPE_PX = 40;
  * swaps the URL with history.replaceState, so deep links and refreshes land on the right side.
  */
 export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
+  const user = useCurrentUser();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const switched = useRef(false);
   const loginRef = useRef<HTMLElement>(null);
@@ -49,21 +54,23 @@ export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
 
   const other: AuthMode = mode === "login" ? "register" : "login";
 
-  // Round 15: the whole curved panel switches sides. The inner button stays the keyboard /
-  // screen-reader control; its click simply bubbles up to this handler.
+  // Round 15: the curved panel switches sides. Cursor fix: only its button switches on click (the rest of
+  // the panel is plain, selectable text with a normal cursor); the button's click bubbles up to here.
   function onOverlayClick(e: MouseEvent<HTMLElement>) {
     if (Date.now() < suppressClickUntil.current) {
       suppressClickUntil.current = 0;
       e.preventDefault();
       return;
     }
+    if (!(e.target instanceof Element) || !e.target.closest("button")) return;
     go(other);
   }
 
   // Optional swipe: drag the panel toward the other side (left on sign-in, right on create-account).
   // BUG-1313: capture the pointer so long drags and drags that end off the overlay still count.
+  // Touch / pen only: a mouse drag selects text instead.
   function onOverlayPointerDown(e: PointerEvent<HTMLElement>) {
-    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.pointerType === "mouse") return;
     dragStartX.current = e.clientX;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -116,8 +123,25 @@ export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
 
   const isReg = mode === "register";
 
+  // Signed in already: show the account card (Dashboard / Settings / Log out) instead of the forms.
+  if (user) {
+    return (
+      <main className={s.page}>
+        <div className={m.themeCorner}>
+          <ThemeToggle />
+        </div>
+        <div className={m.signedWrap}>
+          <SignedInCard user={user} />
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className={s.page}>
+    <main className={s.page} aria-busy={user === undefined || undefined}>
+      <div className={m.themeCorner}>
+        <ThemeToggle />
+      </div>
       {/* Background 3D shapes (decorative). */}
       <div className={s.scene} aria-hidden>
         <div className={`${s.sh} ${s.big} ${s.sph} ${s.bgSphereA} ${s.float1}`} />

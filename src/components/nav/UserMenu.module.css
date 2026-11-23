@@ -1,0 +1,182 @@
+.root {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 3px 10px 3px 3px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8edff;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.trigger:hover,
+.triggerOn {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.trigger:focus-visible,
+.item:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 2px;
+}
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #38bdf8, #2563eb 55%, #7c3aed);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+.avatarLg {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+  flex: none;
+}
+.chev {
+  transition: transform 0.2s ease;
+  opacity: 0.8;
+}
+.chevOpen {
+  transform: rotate(180deg);
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 80;
+  width: 264px;
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(12, 17, 40, 0.97);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  color: #e8edff;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.menuLeft {
+  right: auto;
+  left: 0;
+}
+.menuOpen {
+  opacity: 1;
+  transform: none;
+}
+.menu[hidden] {
+  display: none;
+}
+.who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 12px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.whoText {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.whoText b {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.whoText small {
+  font-size: 12px;
+  color: #a9b4d8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.logout {
+  margin-top: 4px;
+  color: #fca5a5;
+}
+.logout:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+:global(html[data-theme="light"]) .trigger {
+  border-color: rgba(15, 23, 42, 0.14);
+  background: rgba(255, 255, 255, 0.85);
+  color: #1e293b;
+}
+:global(html[data-theme="light"]) .trigger:hover,
+:global(html[data-theme="light"]) .triggerOn {
+  background: #fff;
+  border-color: rgba(67, 56, 202, 0.35);
+}
+:global(html[data-theme="light"]) .menu {
+  border-color: rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.98);
+  color: #0f172a;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+}
+:global(html[data-theme="light"]) .who {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+:global(html[data-theme="light"]) .whoText small {
+  color: #64748b;
+}
+:global(html[data-theme="light"]) .item:hover {
+  background: #f1f5ff;
+}
+:global(html[data-theme="light"]) .logout {
+  color: #b91c1c;
+}
+@media (max-width: 480px) {
+  .trigger {
+    height: 36px;
+    padding: 2px;
+  }
+  .trigger .avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 11px;
+  }
+  .chev {
+    display: none;
+  }
+  .menu {
+    width: min(264px, calc(100vw - 24px));
+  }
+}

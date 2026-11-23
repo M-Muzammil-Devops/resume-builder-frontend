@@ -1,0 +1,288 @@
+/* SSO buttons + magic-code panel. Colours come from the AuthSlider .page variables (inherited). */
+
+.sso {
+  margin-top: 4px;
+}
+.ssoSlot {
+  height: 76px;
+}
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ph, #8f99ba);
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(84, 94, 128, 0.28), transparent);
+}
+.ssoGrid {
+  display: grid;
+  gap: 10px;
+}
+.one {
+  grid-template-columns: 1fr;
+}
+.two {
+  grid-template-columns: 1fr 1fr;
+}
+.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+.ssoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(214, 222, 245, 0.95);
+  background: linear-gradient(180deg, #fff, var(--ibg, #eef3ff));
+  color: var(--ink, #0b1230);
+  font: 700 13px var(--font-raleway), "Segoe UI", sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: inset 0 -1px 0 rgba(30, 50, 130, 0.08), 0 1px 0 #fff, 0 6px 12px rgba(30, 30, 60, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.ssoBtn:hover {
+  transform: translateY(-1px);
+  border-color: #8fb0f5;
+  box-shadow: 0 0 0 3px var(--focus, rgba(37, 99, 235, 0.2)), 0 8px 16px rgba(30, 30, 60, 0.12);
+}
+.ssoBtn:active {
+  transform: translateY(1px);
+}
+.ssoBtn:focus-visible {
+  outline: 3px solid var(--b2, #2563eb);
+  outline-offset: 2px;
+}
+.ssoBtn svg {
+  flex: none;
+}
+.mailIcon {
+  fill: none;
+  stroke: var(--acc, #2457d6);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.short {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.long1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Desktop: short visible label, full "Continue with …" name for assistive tech. */
+.long {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 767px) {
+  .three,
+  .two {
+    grid-template-columns: 1fr;
+  }
+  .ssoBtn {
+    height: 46px;
+    font-size: 14px;
+  }
+  .short {
+    display: none;
+  }
+  .long {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
+}
+
+/* ---------- magic code ---------- */
+.strong {
+  color: var(--ink, #0b1230);
+  overflow-wrap: anywhere;
+}
+.codeInput {
+  padding: 14px 16px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.55em;
+  text-indent: 0.55em;
+  font-variant-numeric: tabular-nums;
+}
+.codeGap {
+  height: 14px;
+}
+.notice {
+  margin: -4px 2px 12px;
+  color: #067647;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--mut, #545e80);
+}
+.row button:disabled {
+  color: var(--mut, #545e80);
+  cursor: default;
+  text-decoration: none;
+}
+.small {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mut, #545e80);
+}
+.forgotMagic {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mut, #545e80);
+}
+.oauthError {
+  margin: 0 0 14px;
+}
+
+/* ---------- signed-in card (shown on /login and /register for a signed-in user) ---------- */
+.signedCard {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+  padding: 36px 36px 30px;
+  border-radius: 30px;
+  background: var(--card, #fff);
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18), 0 36px 60px rgba(0, 0, 0, 0.28);
+  text-align: center;
+  color: var(--ink, #0b1230);
+}
+.signedAvatar {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  margin: 18px auto 14px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #38bdf8, #2563eb 55%, #7c3aed);
+  color: #fff;
+  font: 700 26px var(--head, sans-serif);
+  letter-spacing: 0.04em;
+  box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.2), 0 12px 26px var(--glow, rgba(37, 99, 235, 0.45));
+}
+.signedName {
+  margin: 0;
+  font: 700 22px var(--head, sans-serif);
+  overflow-wrap: anywhere;
+}
+.signedEmail {
+  margin: 4px 0 22px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mut, #545e80);
+  overflow-wrap: anywhere;
+}
+.signedActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+.signedWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: calc(100dvh - 80px);
+}
+.signedLogout {
+  margin-top: 16px;
+}
+.signedBrand {
+  display: flex;
+  justify-content: center;
+}
+.themeCorner {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 40;
+}
+@media (max-width: 480px) {
+  .signedCard {
+    padding: 28px 22px 24px;
+  }
+}
+.signedPrimary {
+  display: block;
+  box-sizing: border-box;
+  text-align: center;
+  text-decoration: none;
+}
+.callbackText {
+  margin: 10px 0 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mut, #545e80);
+}
+.bigSpinner {
+  display: block;
+  width: 42px;
+  height: 42px;
+  margin: 22px auto 6px;
+  border-radius: 50%;
+  border: 3px solid rgba(37, 99, 235, 0.18);
+  border-top-color: var(--b2, #2563eb);
+  animation: ssoSpin 0.8s linear infinite;
+}
+@keyframes ssoSpin {
+  to {
+    rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bigSpinner {
+    animation-duration: 1.8s;
+  }
+  .ssoBtn {
+    transition: none;
+  }
+}
+:global(html[data-theme="light"]) .signedCard {
+  border-color: rgba(99, 102, 241, 0.14);
+  box-shadow: 0 12px 24px rgba(30, 41, 99, 0.08), 0 36px 60px rgba(30, 41, 99, 0.12);
+}
+/* Phones: the card fills the top of the screen, so the toggle floats bottom-right instead. */
+@media (max-width: 767px) {
+  .themeCorner {
+    position: fixed;
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+  }
+}

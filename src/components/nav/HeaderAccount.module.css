@@ -1,0 +1,25 @@
+.group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+.slot {
+  display: inline-block;
+  width: 64px;
+  height: 40px;
+}
+@media (max-width: 480px) {
+  .group {
+    gap: 6px;
+  }
+}
+/* Phone/tablet headers hide their links and show a burger: keep this group on the right, next to it. */
+@media (max-width: 899px) {
+  .group {
+    margin-left: auto;
+  }
+  .group + button {
+    margin-left: 0;
+  }
+}

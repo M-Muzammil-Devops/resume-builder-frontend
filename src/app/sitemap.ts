@@ -4,7 +4,7 @@ import { publicSiteUrl } from "@/lib/siteUrl";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = await publicSiteUrl();
   const now = new Date();
-  return ["", "/tools/audio-noise-remover", "/tools/ai-voice-cleaner", "/login", "/register", "/forgot-password", "/privacy", "/terms"].map((path) => ({
+  return ["", "/tools", "/tools/audio-noise-remover", "/login", "/register", "/forgot-password", "/privacy", "/terms", "/contact"].map((path) => ({
     url: base ? `${base}${path || "/"}` : path || "/",
     lastModified: now,
     changeFrequency: path === "" ? "weekly" : "monthly",

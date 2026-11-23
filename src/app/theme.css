@@ -1,0 +1,59 @@
+/* Day/Night theme (global). <html data-theme="light|dark"> is set before paint by public/theme-init.js.
+   No attribute = dark (the original look). Page modules add their own light overrides with
+   :global(html[data-theme="light"]) selectors. The editor and resume templates are not themed. */
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* Brief colour cross-fade while the toggle is clicked (removed again by lib/theme.ts). */
+html.rb-theme-anim,
+html.rb-theme-anim *,
+html.rb-theme-anim *::before,
+html.rb-theme-anim *::after {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease, fill 0.35s ease,
+    stroke 0.35s ease, box-shadow 0.35s ease !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.rb-theme-anim,
+  html.rb-theme-anim *,
+  html.rb-theme-anim *::before,
+  html.rb-theme-anim *::after {
+    transition: none !important;
+  }
+}
+
+/* ---------- workspace (dashboard, jobs, settings): light sidebar in day mode ---------- */
+html[data-theme="light"] .app-sidebar {
+  background: linear-gradient(185deg, #ffffff 0%, #f7f8fb 60%, #f1f3f7 100%);
+  color: #1f2937;
+  border-right: 1px solid #e2e6ec;
+}
+html[data-theme="light"] .app-sidebar .border-white\/10 {
+  border-color: #e5e7eb;
+}
+html[data-theme="light"] .app-sidebar .text-white {
+  color: #0f172a;
+}
+html[data-theme="light"] .app-sidebar .text-slate-200,
+html[data-theme="light"] .app-sidebar .text-slate-300,
+html[data-theme="light"] .app-sidebar .text-slate-400 {
+  color: #475569;
+}
+html[data-theme="light"] .app-sidebar .text-slate-500 {
+  color: #94a3b8;
+}
+html[data-theme="light"] .app-sidebar .app-nav-link:hover {
+  background: #eef2f7;
+  color: #0f172a;
+}
+html[data-theme="light"] .app-sidebar .app-nav-link-active {
+  background: linear-gradient(90deg, rgba(74, 143, 134, 0.18), rgba(74, 143, 134, 0.04));
+  color: #1f5f57;
+}
+html[data-theme="light"] .app-main {
+  background:
+    radial-gradient(ellipse 70% 50% at 0% 0%, rgba(74, 143, 134, 0.1), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(99, 102, 241, 0.07), transparent 45%),
+    linear-gradient(180deg, #f4f6f9 0%, #eceff3 100%);
+}

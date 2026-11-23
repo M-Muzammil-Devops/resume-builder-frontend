@@ -23,7 +23,6 @@ test("BUG-1340/1343: strength → max reduction is capped (6-18 dB), graded and 
   assert.equal(maxReductionDb(50), 12);
   assert.equal(maxReductionDb(80), 15);
   assert.equal(maxReductionDb(100), 18);
-  assert.equal(maxReductionDb(80, "voice"), 15);
   assert.equal(maxReductionDb(80, "conversation"), 11.2);
   assert.equal(maxReductionDb(100, "conversation"), 12);
   for (let s = 1; s <= 100; s++) assert.ok(maxReductionDb(s) > maxReductionDb(s - 1), `monotonic at ${s}`);

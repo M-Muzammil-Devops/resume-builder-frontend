@@ -25,10 +25,6 @@ export function DownloadModal({ documentId }: { documentId: string }) {
 
   async function downloadPdf() {
     if (!document) return;
-    if (documentId === "local-demo") {
-      setError("Sign in and save a resume to export PDF.");
-      return;
-    }
     const name = sanitizeFileName(fileName);
     setBusy("pdf");
     setError(null);

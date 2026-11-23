@@ -60,3 +60,15 @@ test("BUG-916 nonce is random per request", () => {
   assert.notEqual(a, b);
   assert.ok(Buffer.from(a, "base64").length >= 16);
 });
+
+test("GA4 hosts are allowed only when a GA4 id is configured", () => {
+  const without = buildCsp("n");
+  assert.equal(without.includes("googletagmanager"), false);
+  assert.equal(without.includes("google-analytics"), false);
+  assert.equal(buildCsp("n", { gaId: "not-an-id" }).includes("googletagmanager"), false);
+  const withGa = buildCsp("n", { gaId: "G-ABC123XYZ" });
+  const dir = (name: string) => withGa.split(";").map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) || "";
+  assert.match(dir("script-src"), /https:\/\/www\.googletagmanager\.com/);
+  assert.match(dir("connect-src"), /google-analytics\.com/);
+  assert.match(dir("img-src"), /google-analytics\.com/);
+});

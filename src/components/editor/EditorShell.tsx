@@ -34,7 +34,6 @@ import { SharePanel } from "@/components/editor/SharePanel";
 import { DownloadModal } from "@/components/editor/DownloadModal";
 import { ProfileMenu } from "@/components/editor/ProfileMenu";
 import { ApiError, apiFetch } from "@/lib/api";
-import { saveLocalDemoResume } from "@/lib/localDemo";
 import { fallbackResumeTitle, useEditorStore } from "@/store/editorStore";
 import type { ResumeDocument } from "@/shared";
 
@@ -159,26 +158,6 @@ export function EditorShell({ documentId }: Props) {
     const version = ++saveVersion.current;
     const snapshot = current;
     const title = fallbackResumeTitle(snapshot.title);
-
-    if (documentId === "local-demo") {
-      setSaveStatus("saving");
-      try {
-        const next = title === snapshot.title ? snapshot : { ...snapshot, title };
-        saveLocalDemoResume(next);
-        if (version !== saveVersion.current) return;
-        const latest = useEditorStore.getState().document;
-        if (!latest || !sameResume(latest, snapshot)) return;
-        useEditorStore.setState({
-          document: { ...latest, title },
-          dirty: false,
-          saveStatus: "saved",
-        });
-      } catch {
-        if (version !== saveVersion.current) return;
-        setSaveStatus("error");
-      }
-      return;
-    }
 
     inflight.current?.abort();
     const controller = new AbortController();
@@ -311,7 +290,6 @@ export function EditorShell({ documentId }: Props) {
   }, [undo, redo]);
 
   async function markComplete() {
-    if (documentId === "local-demo") return;
     const existing = useEditorStore.getState().document;
     if (!existing) return;
     if (existing.isComplete) {
@@ -465,23 +443,21 @@ export function EditorShell({ documentId }: Props) {
               Retry
             </button>
           )}
-          {documentId !== "local-demo" && (
-            <button
-              type="button"
-              onClick={markComplete}
-              disabled={completing}
-              aria-label={resumeDoc.isComplete ? "Mark incomplete" : "Mark complete"}
-              className={clsx(
-                "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-semibold",
-                resumeDoc.isComplete
-                  ? "bg-[#dce8e6] text-[var(--rb-teal-dark)]"
-                  : "bg-[#0f5f59] text-white hover:bg-[#0b4a45] disabled:opacity-60"
-              )}
-            >
-              <CheckCircle2 size={14} />
-              {resumeDoc.isComplete ? "Mark incomplete" : completing ? "Completing…" : "Mark Complete"}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={markComplete}
+            disabled={completing}
+            aria-label={resumeDoc.isComplete ? "Mark incomplete" : "Mark complete"}
+            className={clsx(
+              "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-semibold",
+              resumeDoc.isComplete
+                ? "bg-[#dce8e6] text-[var(--rb-teal-dark)]"
+                : "bg-[#0f5f59] text-white hover:bg-[#0b4a45] disabled:opacity-60"
+            )}
+          >
+            <CheckCircle2 size={14} />
+            {resumeDoc.isComplete ? "Mark incomplete" : completing ? "Completing…" : "Mark Complete"}
+          </button>
           <ProfileMenu />
         </div>
       </header>

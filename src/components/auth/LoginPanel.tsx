@@ -11,11 +11,23 @@ import {
   AuroraSubmit,
   FieldError,
 } from "@/components/auth/AuroraFields";
-import { ApiError, apiFetch, setSession } from "@/lib/api";
-import { continueAfterAuth, readPendingTemplate } from "@/lib/continueAfterAuth";
-import { parseLoginNext } from "@/lib/loginNext";
-import { LANDING_TEMPLATES, PENDING_TEMPLATE_KEY, type LandingTemplate } from "@/lib/landingTemplates";
+import { ApiError, apiFetch } from "@/lib/api";
+import { finishSignIn } from "@/lib/finishSignIn";
+import { MagicCodePanel } from "@/components/auth/MagicCodePanel";
+import { SsoButtons, useProviders } from "@/components/auth/SsoButtons";
 import s from "./AuthSlider.module.css";
+import m from "./AuthSso.module.css";
+
+/** ?oauth_error=… set by the API when a Google/Facebook sign-in could not finish. */
+const OAUTH_ERRORS: Record<string, string> = {
+  cancelled: "Sign-in was cancelled. Choose an option to try again.",
+  expired: "That sign-in took too long or was opened in another browser. Please try again.",
+  email: "Your account did not share a verified email address. Use another option, or allow email access.",
+  provider: "We couldn't reach the sign-in provider. Please try again.",
+  rate_limited: "Too many sign-in attempts. Try again in a few minutes.",
+  unavailable: "That sign-in option is not available right now.",
+  invalid: "That sign-in link is not valid. Please try again.",
+};
 
 /** Sign-in form. Logic moved unchanged from app/login/page.tsx (round 12: Aurora slider UI). */
 export function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
@@ -28,31 +40,26 @@ export function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [badCredentials, setBadCredentials] = useState(false);
 
+  const [view, setView] = useState<"password" | "magic">("password");
+  const providers = useProviders();
+  const oauthError = OAUTH_ERRORS[search.get("oauth_error") || ""] || null;
+
   const wantsTemplate = search.get("next") === "template";
 
+  // BUG-1327: password, magic code and SSO sign-in all finish the same way (lib/finishSignIn).
   async function finishAuth(token: string, refreshToken?: string) {
-    setSession(token, refreshToken);
-    // BUG-1327: password AND demo sign-in both come here, so ?next=template&tpl=… is never dropped.
-    const next = parseLoginNext(search);
-    if (next.kind === "template") {
-      let pending = readPendingTemplate();
-      if (!pending || pending.id !== next.tplId) {
-        pending = LANDING_TEMPLATES.find((t) => t.id === next.tplId) ?? null;
-        if (!pending) {
-          // Landing templates come from the API; a fresh tab has nothing in sessionStorage.
-          const res = await apiFetch<{ templates: LandingTemplate[] }>("/landing-templates").catch(() => null);
-          const hit = res?.templates?.find((t) => t.id === next.tplId);
-          pending = hit ? { ...hit, source: "admin" as const } : null;
-        }
-        if (pending) sessionStorage.setItem(PENDING_TEMPLATE_KEY, JSON.stringify(pending));
-      }
-    }
-    // BUG-600: an expired session on /editor/:id comes back to that resume after login.
-    if (next.kind === "path") {
-      router.push(next.path);
-      return;
-    }
-    await continueAfterAuth((href) => router.push(href));
+    await finishSignIn((href) => router.push(href), search, token, refreshToken);
+  }
+
+  function openMagic() {
+    setError(null);
+    setView("magic");
+    requestAnimationFrame(() => document.getElementById("login-title")?.focus({ preventScroll: true }));
+  }
+
+  function closeMagic() {
+    setView("password");
+    requestAnimationFrame(() => document.getElementById("login-title")?.focus({ preventScroll: true }));
   }
 
   async function onSubmit(e: FormEvent) {
@@ -91,17 +98,18 @@ export function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
     }
   }
 
-  async function onDemo() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiFetch<{ token: string; refreshToken?: string }>("/auth/demo", { method: "POST" });
-      await finishAuth(res.token, res.refreshToken);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Demo login failed");
-    } finally {
-      setLoading(false);
-    }
+  if (view === "magic") {
+    return (
+      <MagicCodePanel
+        intent="login"
+        titleId="login-title"
+        idPrefix="login"
+        initialEmail={email}
+        onBack={closeMagic}
+        backLabel="Back to password sign in"
+        onSession={finishAuth}
+      />
+    );
   }
 
   return (
@@ -116,6 +124,11 @@ export function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
           : "Sign in to manage your resumes and job applications."}
       </p>
 
+      {oauthError && (
+        <div className={m.oauthError}>
+          <AuroraError message={oauthError} id="oauth-error" />
+        </div>
+      )}
       <form onSubmit={onSubmit} noValidate className={s.form}>
         <AuroraInput
           id="email"
@@ -141,9 +154,18 @@ export function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
         />
         {fieldErrors.password ? <FieldError id="password-error">{fieldErrors.password}</FieldError> : null}
         <div className={s.forgotRow}>
-          <Link href="/forgot-password" className={s.link}>
-            Forgot password?
-          </Link>
+          {providers?.email ? (
+            <span className={m.forgotMagic}>
+              Forgot password?{" "}
+              <button type="button" className={s.linkBtn} onClick={openMagic}>
+                Sign in with a magic code
+              </button>
+            </span>
+          ) : (
+            <Link href="/forgot-password" className={s.link}>
+              Forgot password?
+            </Link>
+          )}
         </div>
         <AuroraError message={error} id="login-error">
           {badCredentials ? (
@@ -157,6 +179,7 @@ export function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
         </AuroraError>
         <AuroraSubmit loading={loading} idleLabel="Sign in" loadingLabel="Signing in…" />
       </form>
+      <SsoButtons intent="login" idPrefix="login" onEmail={openMagic} />
 
       <p className={s.foot}>
         New here?{" "}
@@ -165,14 +188,6 @@ export function LoginPanel({ onSwitch }: { onSwitch: () => void }) {
         </button>
       </p>
       <div className={s.extras}>
-        <button type="button" onClick={onDemo} disabled={loading} className={s.extraBtn}>
-          Continue with demo account
-        </button>
-        <span aria-hidden>·</span>
-        <Link href="/user/editor/local-demo" className={s.extraLink}>
-          Local editor
-        </Link>
-        <span aria-hidden>·</span>
         <Link href="/admin/login" className={s.extraLink}>
           Admin sign-in
         </Link>

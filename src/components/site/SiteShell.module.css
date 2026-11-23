@@ -1,0 +1,131 @@
+/* Public pages frame — Midnight Aurora (same tokens as the landing page and the audio tool).
+   CSP-safe: classes only, no inline styles. */
+.root {
+  --ink: #eef2ff;
+  --mut: #a9b4d8;
+  --b1: #38bdf8;
+  --b2: #2563eb;
+  --bd: #1d3fa8;
+  --glow: rgba(37, 99, 235, 0.55);
+  --head: var(--font-aurora-head), "Segoe UI", sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  overflow-x: clip;
+  color: var(--ink);
+  background-color: #04060f;
+  background-image:
+    radial-gradient(900px 640px at 6% 2%, rgba(37, 99, 235, 0.5), transparent 65%),
+    radial-gradient(800px 600px at 96% 4%, rgba(217, 70, 239, 0.32), transparent 65%),
+    radial-gradient(700px 500px at 60% 14%, rgba(6, 182, 212, 0.2), transparent 65%),
+    radial-gradient(800px 700px at 0% 60%, rgba(124, 58, 237, 0.26), transparent 65%),
+    radial-gradient(900px 600px at 95% 75%, rgba(6, 182, 212, 0.2), transparent 65%),
+    linear-gradient(180deg, #05071a, #070b1c 40%, #0a0f26 70%, #060818);
+}
+.root *,
+.root *::before,
+.root *::after { box-sizing: border-box; }
+.root a { color: inherit; text-decoration: none; }
+.root h1, .root h2, .root h3 { font-family: var(--head); font-weight: 700; }
+.root button { font-family: inherit; color: inherit; }
+.root :focus-visible { outline: 3px solid #7dd3fc; outline-offset: 3px; }
+.root ::selection { background: rgba(125, 211, 252, 0.4); color: #fff; }
+.skip {
+  position: absolute; left: 12px; top: -60px; z-index: 100; padding: 10px 16px;
+  border-radius: 12px; background: #fff; color: #1e1b6b; font-weight: 700;
+}
+.skip:focus { top: 12px; }
+.grain {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 3px 3px; opacity: 0.5;
+}
+.wrap { position: relative; max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+.main { position: relative; z-index: 1; flex: 1 0 auto; }
+
+/* ---------- nav ---------- */
+.nav { position: sticky; top: 14px; z-index: 50; width: 100%; max-width: 1180px; margin: 14px auto 0; padding: 0 28px; }
+.navIn {
+  display: flex; align-items: center; gap: 28px; padding: 12px 14px 12px 20px; border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 20px 40px rgba(0, 0, 0, 0.35);
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.navScrolled .navIn {
+  background: linear-gradient(180deg, rgba(20, 26, 60, 0.82), rgba(12, 16, 40, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 24px 50px rgba(0, 0, 0, 0.5);
+}
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--head); font-weight: 700; font-size: 18px; }
+.mark {
+  width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 11px; color: #fff;
+  background: linear-gradient(145deg, var(--b1), var(--b2));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), inset 0 -3px 0 rgba(0, 0, 0, 0.18), 0 4px 0 var(--bd), 0 10px 18px var(--glow);
+}
+.links { display: flex; align-items: center; gap: 26px; margin-left: auto; font-weight: 700; font-size: 14px; color: #c9d3f5; }
+.links > a:hover { color: #fff; }
+.login { font-weight: 700; font-size: 14px; color: #fff; padding: 0 6px; }
+.burger {
+  display: none; margin-left: auto; width: 42px; height: 42px; border-radius: 13px; place-items: center; cursor: pointer;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.menu { display: none; }
+.menuLabel {
+  padding: 10px 14px 2px; font-family: var(--head); font-size: 11px; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: #7dd3fc;
+}
+.menuBadge {
+  margin-left: 8px; padding: 2px 7px; border-radius: 999px; font-style: normal; font-size: 9px; font-weight: 800;
+  letter-spacing: 0.1em; text-transform: uppercase; vertical-align: 2px;
+  background: linear-gradient(180deg, #fcd34d, #f59e0b); color: #3b1d02;
+}
+.menuBadgeSoon { background: linear-gradient(180deg, #f0abfc, #c026d3); color: #3b0a3f; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 999px;
+  padding: 16px 30px; font-family: var(--head); font-weight: 700; font-size: 13px; letter-spacing: 0.09em;
+  text-transform: uppercase; color: #fff; cursor: pointer; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(180deg, var(--b1), var(--b2));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.55), inset 0 -5px 8px rgba(0, 0, 0, 0.14), 0 6px 0 var(--bd),
+    0 12px 18px rgba(0, 0, 0, 0.25), 0 22px 40px var(--glow);
+  transition: transform 0.15s var(--ease), filter 0.15s;
+}
+.btn:hover { transform: translateY(-2px); filter: brightness(1.07); }
+.btnSm { padding: 11px 20px; font-size: 12px; box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.55), 0 4px 0 var(--bd), 0 12px 24px var(--glow); }
+
+/* ---------- footer ---------- */
+.footer { position: relative; z-index: 1; padding: 56px 0 30px; color: var(--mut); }
+.foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1); font-weight: 700; font-size: 14px;
+}
+.foot .brand { color: var(--ink); }
+.copy { font-weight: 600; font-size: 13px; color: #7f8ab3; }
+.foot nav { display: flex; gap: 26px; }
+.foot nav a:hover, .foot nav a[aria-current="page"] { color: #fff; }
+
+@media (max-width: 899px) {
+  .links, .login, .navCta { display: none; }
+  .burger { display: grid; }
+  .menu.menuOpen {
+    display: grid; gap: 6px; margin-top: 8px; padding: 14px; border-radius: 20px; font-weight: 700;
+    background: linear-gradient(180deg, rgba(24, 30, 70, 0.96), rgba(12, 16, 40, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.16); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.5);
+  }
+  .menu a { padding: 12px 14px; border-radius: 12px; }
+  .menu a:hover, .menu a[aria-current="page"] { background: rgba(255, 255, 255, 0.08); }
+  .menu .btn { margin-top: 6px; padding: 14px; }
+}
+@media (max-width: 767px) {
+  .wrap { padding: 0 18px; }
+  .nav { top: 8px; margin-top: 8px; padding: 0 12px; }
+  .navIn { padding: 10px 10px 10px 14px; }
+  .foot { flex-direction: column; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn, .navIn { transition: none; }
+}

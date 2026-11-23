@@ -24,7 +24,11 @@ export function proxy(request: NextRequest) {
   }
 
   const nonce = createNonce();
-  const csp = buildCsp(nonce, { dev: process.env.NODE_ENV === "development" });
+  const csp = buildCsp(nonce, {
+    dev: process.env.NODE_ENV === "development",
+    // GA4 hosts are allowed only when an id is configured (they are still used only after consent).
+    gaId: process.env.NEXT_PUBLIC_GA_ID,
+  });
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);

@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef, useState } from "react";
-import { AudioLines, ChevronDown, Mic } from "lucide-react";
-import { TOOL_LINKS } from "./tools";
+import { ArrowRight, AudioLines, ChevronDown } from "lucide-react";
+import { PDF_EDITOR, PDF_TOOL_GROUPS, TOOL_LINKS } from "./tools";
+import { PdfIcon } from "./PdfIcon";
 import s from "./ToolsMenu.module.css";
 
 const cx = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(" ");
@@ -17,7 +18,13 @@ export function ToolsMenu({ className }: { className?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const itemsRef = useRef<Array<HTMLAnchorElement | null>>([]);
-  const onTool = pathname?.startsWith("/tools/");
+  const onTool = pathname === "/tools" || pathname?.startsWith("/tools/");
+  const audioTools = TOOL_LINKS.filter((tool) => tool.tone !== "c");
+  // PDF section: the editor plus one entry per group (each group opens its block on /tools).
+  const pdfLinks = [
+    { href: `/tools/pdf/${PDF_EDITOR.slug}`, title: PDF_EDITOR.title, icon: PDF_EDITOR.icon },
+    ...PDF_TOOL_GROUPS.map((g) => ({ href: `/tools#${g.id}`, title: g.title, icon: g.tools[0].icon })),
+  ];
 
   useEffect(() => {
     if (!open) return;
@@ -88,7 +95,8 @@ export function ToolsMenu({ className }: { className?: string }) {
         Tools <ChevronDown size={14} aria-hidden="true" className={cx(s.chev, open && s.chevOpen)} />
       </button>
       <div id={menuId} role="menu" aria-label="Tools" className={cx(s.dd, open && s.ddOpen)} hidden={!open} onKeyDown={onMenuKey}>
-        {TOOL_LINKS.map((tool, i) => (
+        <p className={s.sec}>Audio</p>
+        {audioTools.map((tool, i) => (
           <Link
             key={tool.href}
             ref={(el) => {
@@ -100,8 +108,8 @@ export function ToolsMenu({ className }: { className?: string }) {
             aria-current={pathname === tool.href ? "page" : undefined}
             onClick={() => setOpen(false)}
           >
-            <span className={cx(s.ico, tool.tone === "a" ? s.icA : s.icB)} aria-hidden="true">
-              {tool.tone === "a" ? <AudioLines size={18} /> : <Mic size={18} />}
+            <span className={cx(s.ico, s.icA)} aria-hidden="true">
+              <AudioLines size={18} />
             </span>
             <span>
               <b>
@@ -111,6 +119,39 @@ export function ToolsMenu({ className }: { className?: string }) {
             </span>
           </Link>
         ))}
+        <p className={s.sec}>
+          PDF tools <span className={s.soon}>Coming soon</span>
+        </p>
+        <div className={s.pdfGrid}>
+          {pdfLinks.map((link, j) => (
+            <Link
+              key={link.href}
+              ref={(el) => {
+                itemsRef.current[audioTools.length + j] = el;
+              }}
+              href={link.href}
+              role="menuitem"
+              className={cx(s.mini, pathname === link.href && s.cur)}
+              onClick={() => setOpen(false)}
+            >
+              <span className={cx(s.miniIco)} aria-hidden="true">
+                <PdfIcon name={link.icon} size={15} />
+              </span>
+              {link.title}
+            </Link>
+          ))}
+        </div>
+        <Link
+          ref={(el) => {
+            itemsRef.current[audioTools.length + pdfLinks.length] = el;
+          }}
+          href="/tools"
+          role="menuitem"
+          className={cx(s.all, pathname === "/tools" && s.cur)}
+          onClick={() => setOpen(false)}
+        >
+          Browse all tools <ArrowRight size={15} aria-hidden="true" />
+        </Link>
       </div>
     </div>
   );

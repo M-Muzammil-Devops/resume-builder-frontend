@@ -1,8 +1,8 @@
 import { apiFetch, ApiError, getApiUrl, getToken } from "@/lib/api";
 
-export type AudioMode = "noise" | "voice" | "conversation";
+export type AudioMode = "noise" | "conversation";
 export type AudioOutput = "same" | "mp3" | "wav" | "flac";
-export type AudioStatus = "queued" | "probing" | "denoising" | "enhancing" | "encoding" | "done" | "failed" | "canceled";
+export type AudioStatus = "queued" | "probing" | "denoising" | "encoding" | "done" | "failed" | "canceled";
 
 export { AUDIO_MAX_MB, AUDIO_MAX_SECONDS, limitsLabel, progressHint } from "./audioLimits";
 import { AUDIO_MAX_MB, AUDIO_MAX_SECONDS } from "./audioLimits";

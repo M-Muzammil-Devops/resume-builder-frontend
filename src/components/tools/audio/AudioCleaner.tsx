@@ -367,7 +367,7 @@ export function AudioCleaner({ initialMode, signedIn, toolPath }: { initialMode:
         <div className={cx(s.glass, s.settings)}>
           <span className={s.lbl} id="aud-mode">Mode</span>
           <div className={s.seg3} role="radiogroup" aria-labelledby="aud-mode">
-            {(["noise", "conversation", "voice"] as const).map((m) => (
+            {(["noise", "conversation"] as const).map((m) => (
               <button key={m} type="button" role="radio" aria-checked={mode === m} className={cx(mode === m && s.on)} onClick={() => setMode(m)} disabled={busy}>
                 {MODE_LABEL[m]}
               </button>
@@ -502,14 +502,12 @@ function Processing({
   onCancelAndStart?: () => void;
 }) {
   const st = phase === "uploading" ? "uploading" : job?.status || "queued";
-  const voice = (job?.mode || mode) === "voice";
-  const order = ["uploading", "queued", "probing", "denoising", "enhancing", "encoding", "done"];
+  const order = ["uploading", "queued", "probing", "denoising", "encoding", "done"];
   const at = order.indexOf(st);
   const steps = [
     { key: "uploading", label: "Upload" },
     { key: "probing", label: "Analyze format" },
     { key: "denoising", label: job?.chunks && job.chunks.total > 1 && st === "denoising" ? `Remove noise (AI) · Part ${Math.min(job.chunks.done + 1, job.chunks.total)} of ${job.chunks.total}` : "Remove noise (AI)" },
-    ...(voice ? [{ key: "enhancing", label: "Loudness & EQ" }] : []),
     { key: "encoding", label: `Encode ${job?.outputFormat || ""}`.trim() },
   ];
   const circumference = 2 * Math.PI * 50;
@@ -577,11 +575,10 @@ function Processing({
   );
 }
 
-const MODE_LABEL: Record<AudioMode, string> = { noise: "Remove noise", conversation: "All voices", voice: "Voice clean" };
+const MODE_LABEL: Record<AudioMode, string> = { noise: "Remove noise", conversation: "All voices" };
 const MODE_HINT: Record<AudioMode, string> = {
   noise: "Removes background noise. Your voice stays untouched.",
   conversation: "Keeps every voice, even quiet or far ones (phone calls, meetings). Gentler on noise.",
-  voice: "Noise removal + loudness (−16 LUFS) + voice EQ.",
 };
 
 type Track = "original" | "clean";
