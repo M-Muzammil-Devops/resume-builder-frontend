@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { LandingExperience } from "@/components/landing/LandingExperience";
+import { LandingAurora } from "@/components/landing/aurora/LandingAurora";
 import { publicSiteUrl } from "@/lib/siteUrl";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
-      <LandingExperience />
+      <LandingAurora />
     </>
   );
 }

@@ -76,7 +76,7 @@ const HEADLINE = ["Build", "a", "resume", "that", "gets", "interviews"];
 function categoryOf(layoutKey: string, department?: string) {
   if (department && department !== "Custom") return department;
   if (layoutKey === "classic" || layoutKey === "elegant" || layoutKey === "timeline") return "Traditional";
-  if (layoutKey === "stylish" || layoutKey === "polished" || layoutKey === "ivy-league" || layoutKey === "single-column") return "Leadership";
+  if (layoutKey === "stylish" || layoutKey === "polished" || layoutKey === "ivy-league" || layoutKey === "single-column" || layoutKey === "crest") return "Leadership";
   return "Modern";
 }
 
@@ -575,12 +575,13 @@ export function LandingExperience() {
     const staticMapped: Card[] = LANDING_TEMPLATES.map((item) => ({
       ...item,
       source: "static" as const,
-      hasPhoto: item.id !== "classic-serif" && item.id !== "precision-line",
+      hasPhoto: item.hasPhoto ?? (item.id !== "classic-serif" && item.id !== "precision-line"),
       columns:
-        item.layoutKey === "classic" || item.layoutKey === "timeline" || item.layoutKey === "single-column" || item.layoutKey === "elegant"
+        item.columns ??
+        (item.layoutKey === "classic" || item.layoutKey === "timeline" || item.layoutKey === "single-column" || item.layoutKey === "elegant"
           ? "single"
-          : "double",
-      category: categoryOf(item.layoutKey),
+          : "double"),
+      category: categoryOf(item.layoutKey, item.department),
     }));
     const remoteMapped: Card[] = remote.map((item) => ({
       ...item,

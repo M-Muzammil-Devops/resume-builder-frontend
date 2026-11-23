@@ -4,7 +4,7 @@ import { PAPER_COLORS } from "@/lib/paper";
 import { FieldSectionCtx } from "./fieldContext";
 import { fontScale } from "@/lib/designScale";
 import { linkHrefFromText } from "@/lib/linkHref";
-import { useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import {
   Award,
@@ -27,12 +27,13 @@ import {
 } from "lucide-react";
 import type {
   HeaderSection,
+  ResumeDocument,
   ResumeDesign,
   ResumeSection,
   SectionSettings,
   SectionType,
 } from "@/shared";
-import { defaultSectionSettings } from "@/shared";
+import { defaultSectionSettings, isLetterPage, isSingleColumnLayout, resolveColumns } from "@/shared";
 import { EditableText } from "@/components/resume/EditableText";
 import { LocationAutocomplete } from "@/components/resume/LocationAutocomplete";
 import { DateRangePicker } from "@/components/resume/DateRangePicker";
@@ -51,6 +52,10 @@ import { useEditorStore } from "@/store/editorStore";
 import { useDocumentCss } from "@/hooks/useDocumentCss";
 
 import { ReadOnlyCtx } from "./readOnlyContext";
+
+import { fontStack } from "@/lib/fontStack";
+/** entryLayout "date-left": dates/location sit in a left column beside each entry. */
+const DateLeftCtx = createContext(false);
 
 const PAPER_BG = PAPER_COLORS;
 
@@ -74,6 +79,7 @@ function SectionHeading({
   sectionType,
   headingStyle = "underline",
   uppercaseTitles = true,
+  number,
 }: {
   value: string;
   onChange: (next: string) => void;
@@ -82,8 +88,74 @@ function SectionHeading({
   sectionType?: SectionType;
   headingStyle?: NonNullable<ResumeDesign["sectionHeadingStyle"]>;
   uppercaseTitles?: boolean;
+  /** "01", "02"… for the numbered heading style */
+  number?: string;
 }) {
   const Icon = sectionType ? SECTION_ICONS[sectionType] : undefined;
+
+  if (headingStyle === "numbered") {
+    return (
+      <div className="rb-heading-numbered mb-2 mt-2 flex items-center gap-2">
+        {number && (
+          <span
+            className="inline-flex h-[20px] min-w-[26px] shrink-0 items-center justify-center rounded-[3px] px-1 text-[11px] font-bold leading-none text-white"
+            style={{ background: accent }}
+            aria-hidden
+          >
+            {number}
+          </span>
+        )}
+        <EditableText
+          tag="h2"
+          value={value}
+          onChange={onChange}
+          className={clsx(
+            "shrink-0 text-[12.5px] font-bold tracking-[0.12em]",
+            uppercaseTitles !== false && "uppercase"
+          )}
+          style={{ color: ink }}
+        />
+        <div className="h-[1.5px] min-w-[24px] flex-1" style={{ background: accent }} />
+      </div>
+    );
+  }
+
+  // Full-width tinted band, centred title (Steady Form, Strategy Clean).
+  if (headingStyle === "banner") {
+    return (
+      <div
+        className="rb-heading-banner mb-2 mt-1 rounded-[2px] px-2 py-[3px] text-center"
+        style={{ background: "#e9edf1" }}
+      >
+        <EditableText
+          tag="h2"
+          value={value}
+          onChange={onChange}
+          className="text-[12.5px] font-bold"
+          style={{ color: ink }}
+        />
+      </div>
+    );
+  }
+
+  // Centred title over a full-width rule (Classic Serif) or between two rules (Strategy Clean).
+  if (headingStyle === "centered-rule" || headingStyle === "ruled-center") {
+    const both = headingStyle === "ruled-center";
+    return (
+      <div
+        className={clsx("rb-heading-centered mb-2 mt-1 text-center", both ? "border-y py-[2px]" : "border-b pb-[2px]")}
+        style={{ borderColor: ink, borderTopWidth: both ? 1.5 : undefined }}
+      >
+        <EditableText
+          tag="h2"
+          value={value}
+          onChange={onChange}
+          className="text-[13px] font-bold"
+          style={{ color: ink }}
+        />
+      </div>
+    );
+  }
 
   if (headingStyle === "icon-line") {
     return (
@@ -234,13 +306,18 @@ function SectionChrome({
       : section.type;
 
   if (readOnly) {
-    return <div className="rb-section-hit relative">{children}</div>;
+    return (
+      <div className="rb-section-hit relative" data-rb-sid={section.id} data-rb-type={section.type}>
+        {children}
+      </div>
+    );
   }
 
   return (
     <FieldSectionCtx.Provider value={sectionTitle ? `${sectionTitle} section` : ""}>
     <div
       data-section-id={section.id}
+      data-rb-type={section.type}
       data-selected={selected || undefined}
       className={clsx(
         "rb-section-hit relative overflow-visible rounded-md",
@@ -370,12 +447,21 @@ function MetaDateLocation({
   const showLoc = showLocation && !(readOnly && isPlaceholder(location));
   const datesEmpty = isPlaceholder(startDate) && isPlaceholder(endDate);
   const showDateRow = showDate && !(readOnly && datesEmpty);
+  const dateLeft = useContext(DateLeftCtx);
   if (!showDateRow && !showLoc) return null;
+  const locEmpty = isPlaceholder(location) || location === "Location";
   return (
-    <div className="relative z-[5] flex flex-nowrap items-center gap-x-2 text-[10px] text-slate-500">
+    <div
+      className={clsx(
+        "z-[5] text-[10px] text-slate-500",
+        dateLeft
+          ? "rb-meta-left absolute left-2 top-[0.3rem] flex w-[21%] flex-col items-start gap-0.5 text-[10.5px] text-slate-600"
+          : "relative flex flex-nowrap items-center gap-x-2"
+      )}
+    >
       {showDateRow && (
-        <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
-          <CalendarDays size={10} className="shrink-0 opacity-70" />
+        <span className={clsx("inline-flex items-center gap-0.5 whitespace-nowrap", datesEmpty && "rb-hint")}>
+          {!dateLeft && <CalendarDays size={10} className="shrink-0 opacity-70" />}
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}
@@ -387,8 +473,8 @@ function MetaDateLocation({
         </span>
       )}
       {showLoc && (
-        <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
-          <MapPin size={10} className="shrink-0 opacity-70" />
+        <span className={clsx("inline-flex items-center gap-0.5 whitespace-nowrap", locEmpty && "rb-hint")}>
+          {!dateLeft && <MapPin size={10} className="shrink-0 opacity-70" />}
           <LocationAutocomplete
             value={location === "Location" ? "" : location}
             onChange={onLocationChange}
@@ -489,7 +575,7 @@ function ExperienceEntry({
         />
       )}
       <div className="min-w-0 flex-1">
-        {entryLayout === "stacked" ? (
+        {entryLayout === "stacked" || entryLayout === "date-left" ? (
           <>
             <div className="flex flex-wrap items-baseline gap-x-2">
               {st.title !== false && (
@@ -604,7 +690,7 @@ function ExperienceEntry({
                 e.stopPropagation();
                 setLinkOpen((v) => !v);
               }}
-              className="inline-flex items-center gap-1 text-[11px] text-slate-500 underline"
+              className={clsx("inline-flex items-center gap-1 text-[11px] text-slate-500 underline", !item.link && "rb-hint")}
             >
               <Link2 size={11} />
               {item.link ? item.link.replace(/^https?:\/\//, "").slice(0, 28) : "URL"}
@@ -773,7 +859,7 @@ function ExperienceEntry({
         {!readOnly && (item.projects ?? []).length === 0 && (
           <button
             type="button"
-            className="rb-editor-only mt-2 text-[11px] font-semibold text-slate-400 hover:text-slate-600"
+            className="rb-editor-only rb-hint mt-2 text-[11px] font-semibold text-slate-400 hover:text-slate-600"
             onClick={() =>
               patch({
                 projects: [{ id: `${item.id}-project`, name: "", description: "" }],
@@ -849,6 +935,7 @@ function renderBody(
     headingStyle: NonNullable<ResumeDesign["sectionHeadingStyle"]>;
     entryLayout: NonNullable<ResumeDesign["entryLayout"]>;
     ink: string;
+    numbers?: Record<string, string>;
   },
   readOnly = false
 ) {
@@ -871,6 +958,7 @@ function renderBody(
       sectionType={type}
       headingStyle={chrome.headingStyle}
       uppercaseTitles={sectionSettings.uppercaseTitles !== false}
+      number={chrome.numbers?.[section.id]}
     />
   );
 
@@ -979,8 +1067,8 @@ function renderBody(
                     placeholder="Group"
                   />
                 )}
-                {layout === "tags" ? (
-                  <div className="mt-1 flex flex-wrap gap-1">
+                {layout === "tags" || layout === "underline" ? (
+                  <div className={clsx("mt-1 flex flex-wrap", layout === "underline" ? "gap-x-3 gap-y-1" : "gap-1")}>
                     {cat.skills.map((skill, sIdx) => {
                       if (isBlankText(skill)) return null;
                       if (readOnly && isPlaceholder(skill)) return null;
@@ -989,9 +1077,12 @@ function renderBody(
                       <span
                         key={`${cat.id}-${sIdx}`}
                         className={clsx(
-                          "inline-flex items-center gap-0.5 rounded",
-                          st.skillBorder !== false && "border border-slate-200"
+                          "inline-flex items-center gap-0.5",
+                          layout === "underline"
+                            ? "rb-skill-underline border-b-[1.5px]"
+                            : clsx("rounded", st.skillBorder !== false && "border border-slate-200")
                         )}
+                        style={layout === "underline" ? { borderColor: accent } : undefined}
                       >
                       <EditableText
                         value={skill}
@@ -1024,7 +1115,10 @@ function renderBody(
                             return { ...s, categories };
                           })
                         }
-                        className="px-1.5 py-0.5 text-[11px] text-slate-700"
+                        className={clsx(
+                          "text-[11px] text-slate-700",
+                          layout === "underline" ? "px-0 py-0.5" : "px-1.5 py-0.5"
+                        )}
                         placeholder="Your skill"
                       />
                       {!readOnly && (
@@ -2100,59 +2194,76 @@ function offsetWithin(el: HTMLElement, root: HTMLElement) {
 function separatePages(page: HTMLElement, pad: number) {
   page.querySelectorAll<HTMLElement>("[data-page-push]").forEach((el) => {
     el.style.marginTop = "";
+    el.style.removeProperty("--rb-base-mt");
     el.removeAttribute("data-page-push");
   });
   const pagePx = parseFloat(getComputedStyle(page).minHeight) || 1123;
   const gap = 36;
   const stride = pagePx + gap;
+  const usable = pagePx - 2 * pad;
   const sections = [...page.querySelectorAll<HTMLElement>(".rb-section-hit")];
   let pages = 1;
 
   const contentEnd = (pageIndex: number) => pageIndex * stride + pagePx - pad;
   const nextStart = (pageIndex: number) => (pageIndex + 1) * stride + pad;
 
+  // Push keeps the element's own CSS margin (e.g. the section gap) and remembers it so print
+  // can restore exactly that spacing (BUG-1290: Summary used to touch the Experience heading).
   const pushToNext = (el: HTMLElement, top: number, pageIndex: number) => {
-    const current = parseFloat(el.style.marginTop || "0") || 0;
+    const current = parseFloat(getComputedStyle(el).marginTop) || 0;
+    if (!el.hasAttribute("data-page-push")) el.style.setProperty("--rb-base-mt", `${current}px`);
     el.style.marginTop = `${current + (nextStart(pageIndex) - top)}px`;
     el.setAttribute("data-page-push", "1");
+    pages = Math.max(pages, pageIndex + 2);
   };
 
-  const place = (el: HTMLElement) => {
+  /**
+   * Push `el` to the next sheet when the block [top, top+keepHeight) would straddle the page end
+   * (only if the block can fit on one page), or when it starts inside the bottom margin/gap.
+   */
+  const place = (el: HTMLElement, keepHeight?: number) => {
     const top = offsetWithin(el, page);
-    const height = el.offsetHeight;
-    if (height <= 0) return;
+    const height = keepHeight ?? el.offsetHeight;
+    if (el.offsetHeight <= 0) return;
     const pageIndex = Math.max(0, Math.floor(top / stride));
     const end = contentEnd(pageIndex);
     const start = nextStart(pageIndex);
     pages = Math.max(pages, pageIndex + 1);
-    const fitsOnOnePage = height <= pagePx - pad;
-    if (fitsOnOnePage && top < end && top + height > end) {
+    if (height <= usable && top < end && top + height > end) {
       pushToNext(el, top, pageIndex);
-      pages = Math.max(pages, pageIndex + 2);
       return;
     }
-    if (top >= end && top < start) {
-      pushToNext(el, top, pageIndex);
-      pages = Math.max(pages, pageIndex + 2);
-    }
+    if (top >= end && top < start) pushToNext(el, top, pageIndex);
   };
 
   for (const section of sections) {
-    const height = section.offsetHeight;
-    if (height <= 0) continue;
-    if (height > pagePx - pad) {
+    if (section.offsetHeight <= 0) continue;
+    const entries = [...section.querySelectorAll<HTMLElement>(".rb-entry")].filter(
+      (el) => !el.parentElement?.closest(".rb-entry") && el.offsetHeight > 0
+    );
+    if (section.classList.contains("group/header") || entries.length === 0) {
+      // Header and single-block sections (Summary…) move as one piece.
       place(section);
-      for (const entry of section.querySelectorAll<HTMLElement>(":scope .rb-entry")) {
-        place(entry);
-      }
       continue;
     }
-    place(section);
+    // BUG-1290: split between entries like the PDF does; the heading travels with entry #1.
+    const sectionTop = offsetWithin(section, page);
+    const first = entries[0];
+    const headWithFirst = offsetWithin(first, page) + first.offsetHeight - sectionTop;
+    place(section, headWithFirst);
+    for (const entry of entries.slice(1)) place(entry);
   }
 
   const used = Math.max(0, page.scrollHeight - pad);
   const byHeight = Math.max(1, Math.ceil(used / stride));
   return Math.max(pages, byHeight);
+}
+
+/** BUG-1298: list grids clamp their columns to the space they get (sidebar 1, mid-width max 2). */
+function columnWidthClass(width: string): string {
+  const pct = parseFloat(width);
+  if (!Number.isFinite(pct) || pct >= 100) return "";
+  return pct <= 40 ? "rb-col-narrow" : "rb-col-mid";
 }
 
 function columnWidth(layout: "single" | "wide-left" | "equal" | "wide-right") {
@@ -2171,11 +2282,15 @@ function columnWidth(layout: "single" | "wide-left" | "equal" | "wide-right") {
 export function ResumeCanvas({
   readOnly = false,
   floatActions,
+  documentOverride,
 }: {
   readOnly?: boolean;
   floatActions?: ReactNode;
+  /** Render this document instead of the store's (Rearrange modal's hidden print-mode draft). */
+  documentOverride?: ResumeDocument;
 } = {}) {
-  const document = useEditorStore((s) => s.document);
+  const storeDocument = useEditorStore((s) => s.document);
+  const document = documentOverride ?? storeDocument;
   const updateSection = useEditorStore((s) => s.updateSection);
   const selectedSectionId = useEditorStore((s) => s.selectedSectionId);
   const selectedItemId = useEditorStore((s) => s.selectedItemId);
@@ -2184,7 +2299,7 @@ export function ResumeCanvas({
   const pagePad = document
     ? Math.round(48 + (Math.min(8, Math.max(0, document.design.pageMargins)) / 8) * 48)
     : 72;
-  const letterPage = document?.design.pageSize === "US Letter";
+  const letterPage = isLetterPage(document?.design.pageSize);
 
   useLayoutEffect(() => {
     const page = pageRef.current;
@@ -2211,8 +2326,10 @@ export function ResumeCanvas({
   const ink = design.inkColor || "#343334";
   const header = content.sections.find((s) => s.type === "header") as HeaderSection | undefined;
   const byId = Object.fromEntries(content.sections.map((s) => [s.id, s]));
-  const isSingleColumn =
-    layoutKey === "single-column" || design.columnLayout === "single";
+  // BUG-1280: sections missing from both column lists still render (appended to the main column).
+  const columns = resolveColumns(content, design.columnLayout);
+  // Same rule as the PDF/export and the Rearrange modal (an empty side column means one column).
+  const isSingleColumn = isSingleColumnLayout(layoutKey, design.columnLayout, columns.right.length);
   const widths = columnWidth(isSingleColumn ? "single" : design.columnLayout);
   const fontSize = 11 + design.fontSize * 0.6;
   const lineHeight = 1.35 + design.lineHeight * 0.08;
@@ -2223,18 +2340,30 @@ export function ResumeCanvas({
   const isBanner = headerStyle === "banner";
   const paperBg = PAPER_BG[design.background || "white"] || "#ffffff";
   const focusMode = !readOnly && Boolean(selectedSectionId || selectedItemId);
+  const allSectionIds = isSingleColumn ? [...columns.left, ...columns.right] : null;
+
+  // Numbered headings ("01 Summary"): count the sections actually shown, in reading order.
+  const numbers: Record<string, string> = {};
+  if (design.sectionHeadingStyle === "numbered") {
+    let n = 0;
+    for (const id of [...columns.left, ...columns.right]) {
+      const section = byId[id];
+      if (!section || section.type === "header" || (readOnly && sectionIsEmpty(section))) continue;
+      n += 1;
+      numbers[id] = String(n).padStart(2, "0");
+    }
+  }
+
   const chrome = {
     headingStyle: design.sectionHeadingStyle || "underline",
     entryLayout: design.entryLayout || "side-meta",
     ink,
+    numbers,
   } as const;
-
-  const allSectionIds = isSingleColumn
-    ? [...content.leftColumnIds, ...content.rightColumnIds]
-    : null;
 
   return (
     <ReadOnlyCtx.Provider value={readOnly}>
+    <DateLeftCtx.Provider value={design.entryLayout === "date-left"}>
     <div
       className="resume-sheet-host relative w-fit shrink-0"
       style={{
@@ -2263,12 +2392,17 @@ export function ResumeCanvas({
       )}
     <div
       ref={pageRef}
-      className="resume-page relative z-[1] text-slate-800"
-      data-page={design.pageSize === "US Letter" ? "letter" : "a4"}
+      className={clsx(
+        "resume-page relative z-[1] text-slate-800",
+        design.entryLayout === "date-left" && "rb-dateleft",
+        design.listColumns && `rb-listcols rb-listcols-${design.listColumns}`,
+        design.density === "compact" && "rb-compact"
+      )}
+      data-page={letterPage ? "letter" : "a4"}
       data-bg={design.background || "white"}
       data-focus={focusMode ? "true" : undefined}
       style={{
-        fontFamily: `"${design.fontFamily}", sans-serif`,
+        fontFamily: fontStack(design.fontFamily),
         fontSize: `${fontSize}px`,
         // BUG-504: every text size on the sheet scales with the Font size slider (default 1).
         ["--rb-fs-scale" as string]: String(fontScale(design.fontSize)),
@@ -2293,9 +2427,10 @@ export function ResumeCanvas({
           readOnly={readOnly}
           headerStyle={headerStyle}
           contentPad={pad}
-          photoPosition={design.photoPosition || "right"}
+          photoPosition={design.photoPosition}
           titlePlacement={design.titlePlacement || "below"}
           contactLayout={design.contactLayout || "row"}
+          monogram={Boolean(design.headerMonogram)}
         />
       )}
 
@@ -2312,10 +2447,10 @@ export function ResumeCanvas({
       ) : (
         <div className="flex" style={{ gap: `${gap}px` }}>
           <div
-            className="space-y-0"
+            className={clsx("space-y-0", columnWidthClass(widths.left))}
             style={{ width: widths.left, display: "flex", flexDirection: "column", gap: 0 }}
           >
-            {content.leftColumnIds.map((id) => {
+            {columns.left.map((id) => {
               const section = byId[id];
               if (!section || section.type === "header") return null;
               if (readOnly && sectionIsEmpty(section)) return null;
@@ -2325,6 +2460,7 @@ export function ResumeCanvas({
           <div
             className={clsx(
               "space-y-0 pl-3",
+              columnWidthClass(widths.right),
               chrome.headingStyle !== "icon-line" && "border-l"
             )}
             style={{
@@ -2335,7 +2471,7 @@ export function ResumeCanvas({
               gap: 0,
             }}
           >
-            {content.rightColumnIds.map((id) => {
+            {columns.right.map((id) => {
               const section = byId[id];
               if (!section || section.type === "header") return null;
               if (readOnly && sectionIsEmpty(section)) return null;
@@ -2353,6 +2489,7 @@ export function ResumeCanvas({
       </div>
     </div>
     </div>
+    </DateLeftCtx.Provider>
     </ReadOnlyCtx.Provider>
   );
 }

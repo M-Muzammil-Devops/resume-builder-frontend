@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { reloadOnceForChunkError } from "@/lib/chunkReload";
 
 /** BUG-1404: branded error page (no inline <style>, so it passes the strict CSP). */
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
+    if (reloadOnceForChunkError(error)) return;
     console.warn("Page error", error.digest || "");
   }, [error]);
   return (

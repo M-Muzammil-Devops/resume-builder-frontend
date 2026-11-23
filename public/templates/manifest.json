@@ -1,0 +1,90 @@
+{
+  "renderer": "resume-canvas",
+  "templates": {
+    "classic-serif": {
+      "fingerprint": "1e32b8cf5c28e7",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:51:46.939Z"
+    },
+    "marketing-cyan": {
+      "fingerprint": "0959e167ae1d16",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:51:50.647Z"
+    },
+    "executive-navy": {
+      "fingerprint": "0fbffa663fe7f2",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:51:54.283Z"
+    },
+    "clean-cyan": {
+      "fingerprint": "10cc9c4fdda1c7",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:51:57.934Z"
+    },
+    "engineer-sky": {
+      "fingerprint": "0414f5b01b872c",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:02.640Z"
+    },
+    "product-blue": {
+      "fingerprint": "025458cabd0df3",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:06.264Z"
+    },
+    "steady-form": {
+      "fingerprint": "1e27784a076b7f",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:09.902Z"
+    },
+    "saffron-line": {
+      "fingerprint": "0a33c1d0fa389f",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:12.559Z"
+    },
+    "tech-hex": {
+      "fingerprint": "1944571675e07d",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:17.640Z"
+    },
+    "strategy-clean": {
+      "fingerprint": "069b33113def23",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:22.065Z"
+    },
+    "precision-line": {
+      "fingerprint": "149282a2a02520",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:26.767Z"
+    },
+    "emerald-numbered": {
+      "fingerprint": "1a0d08790250d7",
+      "pages": 1,
+      "width": 794,
+      "height": 1123,
+      "generatedAt": "2026-11-21T22:52:30.424Z"
+    }
+  },
+  "generatedAt": "2026-11-21T22:52:30.593Z"
+}

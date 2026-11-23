@@ -7,8 +7,6 @@ import {
   AtSign,
   CalendarDays,
   Camera,
-  CloudUpload,
-  EyeOff,
   Flag,
   Link2,
   MapPin,
@@ -19,7 +17,8 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import type { HeaderSection, HeaderSettings } from "@/shared";
-import { DEFAULT_HEADER_SETTINGS } from "@/shared";
+import { DEFAULT_HEADER_SETTINGS, resolvePhotoSlot } from "@/shared";
+import { PhotoSlot } from "@/components/resume/PhotoSlot";
 import { EditableText } from "@/components/resume/EditableText";
 import { ContactLinkField } from "@/components/resume/ContactLinkField";
 import { PhotoUploadModal } from "@/components/resume/PhotoUploadModal";
@@ -76,80 +75,6 @@ function Toggle({
   );
 }
 
-function PhotoBox({
-  header,
-  settings,
-  photoRadius,
-  readOnly,
-  selected,
-  onUpload,
-  onHide,
-}: {
-  header: HeaderSection;
-  settings: HeaderSettings;
-  photoRadius: string;
-  readOnly?: boolean;
-  selected: boolean;
-  onUpload: () => void;
-  onHide: () => void;
-}) {
-  if (readOnly && !header.photoUrl) return null;
-
-  const portrait =
-    settings.photoStyle === "portrait" ||
-    settings.photoStyle === "rounded-portrait";
-
-  return (
-    <div
-      className={clsx(
-        "relative shrink-0 overflow-hidden bg-[#d5d8dd] transition-[border-radius,width,height] duration-200",
-        portrait ? "h-[104px] w-[78px]" : "h-[88px] w-[88px]",
-        !header.photoUrl && "rb-photo-empty",
-        photoRadius
-      )}
-      style={{ boxShadow: `0 0 0 2px ${settings.photoAccent}33` }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {header.photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={header.photoUrl} alt="" className="h-full w-full object-cover" />
-      ) : (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-0.5">
-          <User size={34} className="text-[#a8b0bb]" strokeWidth={1.2} />
-          {!readOnly && (
-            <span className="px-1 text-center text-[10px] font-semibold leading-tight text-[#4b5563]">
-              Add photo
-            </span>
-          )}
-        </div>
-      )}
-
-      {!readOnly && selected && (
-        <>
-          <button
-            type="button"
-            title="Upload photo"
-            aria-label="Upload photo"
-            onClick={onUpload}
-            className="rb-toolbar-btn-primary absolute left-1 top-1 flex h-7 w-7 items-center justify-center rounded-md bg-[#5aaa7a] text-white shadow"
-          >
-            <CloudUpload size={14} />
-          </button>
-          <button
-            type="button"
-            title="Hide photo"
-            aria-label="Hide photo"
-            onClick={onHide}
-            className="rb-toolbar-btn-danger absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-md bg-[#e35d5d] text-white shadow"
-          >
-            <EyeOff size={14} />
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
 /** BUG-1402: same limits as the API (backend HEADER_LIMITS), so typing can never hit a 400. */
 const HEADER_MAX = { fullName: 200, title: 200, email: 200, phone: 50, location: 200, linkedin: 200, extraLink: 200, extraField: 200 } as const;
 
@@ -160,9 +85,10 @@ export function HeaderBlock({
   readOnly,
   headerStyle = "default",
   contentPad = 30,
-  photoPosition = "right",
+  photoPosition,
   titlePlacement = "below",
   contactLayout = "row",
+  monogram = false,
 }: {
   header: HeaderSection;
   accent: string;
@@ -170,9 +96,12 @@ export function HeaderBlock({
   readOnly?: boolean;
   headerStyle?: "default" | "banner" | "centered";
   contentPad?: number;
+  /** Template photo slot side; unset means the default spot left of the name. */
   photoPosition?: "left" | "right";
   titlePlacement?: "below" | "beside";
   contactLayout?: "row" | "grid";
+  /** Initials square beside the name (Emerald Numbered) */
+  monogram?: boolean;
 }) {
   const updateSection = useEditorStore((s) => s.updateSection);
   const selectedSectionId = useEditorStore((s) => s.selectedSectionId);
@@ -205,14 +134,32 @@ export function HeaderBlock({
     if (typeof cur === "boolean") patchSettings({ [key]: !cur });
   }
 
-  const photoRadius =
-    settings.photoStyle === "square" || settings.photoStyle === "portrait"
-      ? "rounded-md"
-      : settings.photoStyle === "rounded"
-        ? "rounded-2xl"
-        : settings.photoStyle === "rounded-portrait"
-          ? "rounded-xl"
-          : "rounded-full";
+  // One slot per template: photo, else monogram (if the template has one), else "Add photo".
+  const slot = resolvePhotoSlot({
+    photoOn: settings.photo,
+    photoUrl: header.photoUrl,
+    photoStyle: settings.photoStyle,
+    headerStyle,
+    photoPosition,
+    monogram,
+    fullName: header.fullName,
+    editing: !readOnly,
+  });
+  const photoSlot = (
+    <PhotoSlot
+      spec={slot}
+      photoUrl={header.photoUrl}
+      accent={accent}
+      ringColor={settings.photoAccent}
+      readOnly={readOnly}
+      selected={selected}
+      onUpload={() => setPhotoOpen(true)}
+      onRemove={() =>
+        updateSection(header.id, (s) => (s.type === "header" ? { ...s, photoUrl: "" } : s))
+      }
+      onHide={() => patchSettings({ photo: false })}
+    />
+  );
 
   const contactItems: {
     key: "phone" | "email" | "linkedin" | "location" | "extraLink" | "extraField" | "dateOfBirth" | "nationality";
@@ -410,11 +357,12 @@ export function HeaderBlock({
 
         <div
           className={clsx(
-            "flex items-start gap-3 pb-2",
+            "flex gap-3 pb-2",
+            headerStyle !== "centered" && "items-start",
             headerStyle === "banner" && "mb-2 text-white",
             headerStyle === "centered" && "flex-col items-center border-b pb-3 text-center",
             headerStyle === "default" && "border-b-2",
-            photoPosition === "left" && headerStyle !== "centered" && "flex-row"
+            slot.position === "left" && "flex-row"
           )}
           style={
             headerStyle === "banner"
@@ -428,17 +376,7 @@ export function HeaderBlock({
                 : { borderColor: ink }
           }
         >
-          {settings.photo && photoPosition === "left" && headerStyle !== "centered" && (
-            <PhotoBox
-              header={header}
-              settings={settings}
-              photoRadius={photoRadius}
-              readOnly={readOnly}
-              selected={selected}
-              onUpload={() => setPhotoOpen(true)}
-              onHide={() => patchSettings({ photo: false })}
-            />
-          )}
+          {slot.position === "top" ? <div className="flex w-full justify-center">{photoSlot}</div> : slot.position === "left" && photoSlot}
 
           <div
             className={clsx(
@@ -622,17 +560,7 @@ export function HeaderBlock({
             </div>
           </div>
 
-          {settings.photo && (photoPosition !== "left" || headerStyle === "centered") && (
-            <PhotoBox
-              header={header}
-              settings={settings}
-              photoRadius={photoRadius}
-              readOnly={readOnly}
-              selected={selected}
-              onUpload={() => setPhotoOpen(true)}
-              onHide={() => patchSettings({ photo: false })}
-            />
-          )}
+          {slot.position === "right" && photoSlot}
         </div>
       </div>
 

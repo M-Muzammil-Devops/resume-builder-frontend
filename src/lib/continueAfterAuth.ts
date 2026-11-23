@@ -96,7 +96,38 @@ export async function continueAfterAuth(
     const resume = await createResumeFromLandingTemplate(pending);
     sessionStorage.removeItem(PENDING_TEMPLATE_KEY);
     push(`/user/editor/${resume.id}`);
-  } catch {
+  } catch (err) {
+    // BUG-1327/1329: never land silently on the dashboard. A 402 (free plan limit) tells the user why
+    // the template did not open and how to fix it; anything else says the template could not open.
+    sessionStorage.removeItem(PENDING_TEMPLATE_KEY);
+    const status = err && typeof err === "object" && "status" in err ? Number((err as { status: unknown }).status) : 0;
+    try {
+      sessionStorage.setItem(
+        AUTH_NOTICE_KEY,
+        JSON.stringify({ kind: status === 402 ? "plan-limit" : "template-failed", template: pending.name ?? "" })
+      );
+    } catch {
+      /* storage full / blocked: the dashboard just opens */
+    }
     push("/user/dashboard");
+  }
+}
+
+/** One-shot notice the dashboard shows after sign-in (BUG-1327/1329). */
+export const AUTH_NOTICE_KEY = "rb.authNotice";
+
+export function takeAuthNotice(): string | null {
+  try {
+    const raw = sessionStorage.getItem(AUTH_NOTICE_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(AUTH_NOTICE_KEY);
+    const n = JSON.parse(raw) as { kind?: string; template?: string };
+    const name = n.template ? `“${n.template}”` : "the template";
+    if (n.kind === "plan-limit") {
+      return `Free plan limit reached: ${name} wasn't added to your resumes. Upgrade to Pro, or delete a resume to make room, then pick the template again.`;
+    }
+    return `We couldn't open ${name} right now. Please try picking it again.`;
+  } catch {
+    return null;
   }
 }

@@ -1,11 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { TemplateMeta } from "@/shared";
+import { resolveLandingPreset, type TemplateMeta } from "@/shared";
+import { LANDING_TEMPLATES } from "@/lib/landingTemplates";
 import { X } from "lucide-react";
 import clsx from "clsx";
 import { apiFetch } from "@/lib/api";
 import { useEditorStore } from "@/store/editorStore";
+
+import { fontStack } from "@/lib/fontStack";
+/** Real rendered preview for a catalog template: the landing design that shares its layout. */
+function thumbnailFor(template: TemplateMeta): string | null {
+  const preset = resolveLandingPreset(template.id) || resolveLandingPreset(template.layoutKey);
+  if (!preset) return null;
+  return LANDING_TEMPLATES.find((t) => t.id === preset.id)?.image ?? null;
+}
 
 export function TemplatesPanel() {
   const document = useEditorStore((s) => s.document);
@@ -129,17 +138,35 @@ export function TemplatesPanel() {
                   active ? "border-teal-500 ring-2 ring-teal-200" : "border-slate-200"
                 )}
               >
-                <div
-                  className="mb-2 h-20 rounded-lg border border-black/5 p-2"
-                  style={{ background: `${template.accentColor}14` }}
-                >
-                  <div className="h-2 w-2/3 rounded" style={{ background: template.accentColor }} />
-                  <div className="mt-2 space-y-1">
-                    <div className="h-1.5 rounded bg-slate-300/80" />
-                    <div className="h-1.5 w-4/5 rounded bg-slate-200" />
-                    <div className="h-1.5 w-3/5 rounded bg-slate-200" />
+                {thumbnailFor(template) ? (
+                  <div className="relative mb-2 aspect-[3/4] overflow-hidden rounded-lg border border-black/5 bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={thumbnailFor(template)!}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover object-top"
+                    />
+                    <span
+                      className="absolute bottom-1.5 right-1.5 h-3 w-3 rounded-full ring-2 ring-white"
+                      style={{ background: template.accentColor }}
+                      aria-hidden
+                    />
                   </div>
-                </div>
+                ) : (
+                  <div
+                    className="mb-2 aspect-[3/4] rounded-lg border border-black/5 p-2"
+                    style={{ background: `${template.accentColor}14` }}
+                  >
+                    <div className="h-2 w-2/3 rounded" style={{ background: template.accentColor }} />
+                    <div className="mt-2 space-y-1">
+                      <div className="h-1.5 rounded bg-slate-300/80" />
+                      <div className="h-1.5 w-4/5 rounded bg-slate-200" />
+                      <div className="h-1.5 w-3/5 rounded bg-slate-200" />
+                    </div>
+                  </div>
+                )}
                 <div className="truncate text-xs font-semibold text-slate-900">{template.name}</div>
                 <div className="mt-0.5 flex items-center justify-between text-[10px] text-slate-500">
                   <span>{template.previewLabel}</span>
@@ -175,9 +202,17 @@ export function TemplatesPanel() {
             <div className="text-[11px] text-[#8b939e]">Apply only after you confirm</div>
           </div>
           <div className="rb-scroll flex-1 overflow-y-auto p-4">
+            {thumbnailFor(pending) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumbnailFor(pending)!}
+                alt={`${pending.name} preview`}
+                className="mx-auto w-full max-w-[280px] rounded-xl border border-slate-200 shadow-sm"
+              />
+            ) : (
             <div
               className="mx-auto max-w-[240px] rounded-xl border border-slate-200 p-3 shadow-sm"
-              style={{ fontFamily: `"${pending.fontFamily}", sans-serif` }}
+              style={{ fontFamily: fontStack(pending.fontFamily) }}
             >
               <div className="h-2 w-16 rounded-full" style={{ background: pending.accentColor }} />
               <div className="mt-2 h-3 w-2/3 rounded" style={{ background: pending.accentColor }} />
@@ -192,6 +227,7 @@ export function TemplatesPanel() {
                 <div className="h-1.5 w-3/4 rounded bg-slate-100" />
               </div>
             </div>
+            )}
             <div className="mt-4 text-center">
               <div className="text-sm font-semibold text-slate-900">{pending.name}</div>
               <div className="mt-1 text-[12px] text-slate-500">

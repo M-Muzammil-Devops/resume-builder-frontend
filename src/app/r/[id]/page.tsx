@@ -18,7 +18,8 @@ export default async function SharedResumePage({ params }: { params: Promise<{ i
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#1c2433] px-3 py-8">
       {/* BUG-1001: the page has one top-level heading. */}
-      <h1 className="mb-4 text-center text-sm font-normal text-slate-300">Shared resume · read only</h1>
+      {/* BUG-1281: a banner, not a heading; the resume name is the page's only H1. */}
+      <p className="mb-4 text-center text-sm font-normal text-slate-300">Shared resume · read only</p>
       <PublicResume resume={data.resume} />
     </div>
   );

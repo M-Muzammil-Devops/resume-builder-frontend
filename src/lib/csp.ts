@@ -38,6 +38,8 @@ export function buildCsp(nonce: string, opts: { dev?: boolean } = {}): string {
     "img-src 'self' data: blob:",
     // Resume and UI fonts are self-hosted (public/fonts, next/font).
     "font-src 'self' data:",
+    // Audio tool: Before/After players play fetched previews as blob: URLs.
+    "media-src 'self' blob:",
     "connect-src 'self'",
     "object-src 'none'",
     "frame-ancestors 'none'",

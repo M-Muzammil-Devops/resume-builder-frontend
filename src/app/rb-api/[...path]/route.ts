@@ -9,6 +9,13 @@ export const dynamic = "force-dynamic";
 
 const apiInternalUrl = (process.env.API_INTERNAL_URL || "http://127.0.0.1:4000").replace(/\/$/, "");
 const TIMEOUT_MS = 120_000;
+/**
+ * Audio uploads (up to 100 MB) can take a long time on a slow line (100 MB at 1 Mbit/s ≈ 14 min,
+ * at 512 kbit/s ≈ 27 min); the API answers only after the whole body arrived. Default 60 min,
+ * override with AUDIO_UPLOAD_TIMEOUT_MS. The Node server's own 5-minute request timeout is lifted
+ * by server-timeouts.cjs (preloaded in logs/start-frontend.cmd).
+ */
+const UPLOAD_TIMEOUT_MS = Math.max(60_000, Number(process.env.AUDIO_UPLOAD_TIMEOUT_MS) || 60 * 60_000);
 
 // Hop-by-hop and recomputed headers are not forwarded.
 const DROP_REQUEST = new Set(["host", "connection", "keep-alive", "transfer-encoding", "upgrade", "content-length", "expect"]);
@@ -44,7 +51,7 @@ async function forward(request: NextRequest, ctx: { params: Promise<{ path?: str
       body: hasBody ? request.body : undefined,
       redirect: "manual",
       cache: "no-store",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(request.method === "POST" && path[0] === "audio" ? UPLOAD_TIMEOUT_MS : TIMEOUT_MS),
       // Stream request bodies (file uploads) instead of buffering them.
       ...(hasBody ? ({ duplex: "half" } as Record<string, string>) : {}),
     });
@@ -59,6 +66,9 @@ async function forward(request: NextRequest, ctx: { params: Promise<{ path?: str
   upstream.headers.forEach((value, key) => {
     if (!DROP_RESPONSE.has(key.toLowerCase())) out.set(key, value);
   });
+  // BUG-1341: keep Content-Length for media (Range/206 previews) when the body is passed through as-is.
+  const len = upstream.headers.get("content-length");
+  if (len && !upstream.headers.get("content-encoding") && request.method !== "HEAD") out.set("content-length", len);
   for (const cookie of upstream.headers.getSetCookie()) out.append("set-cookie", cookie);
 
   // Upstream errors that are not JSON (e.g. a crash page) are wrapped so clients always get JSON.

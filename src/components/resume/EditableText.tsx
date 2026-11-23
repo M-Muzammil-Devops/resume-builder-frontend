@@ -357,7 +357,7 @@ export function EditableText({
   if (readOnly && isPlaceholder(value)) return null;
 
   return (
-    <div ref={wrapRef} className="relative min-w-0" dir={direction}>
+    <div ref={wrapRef} className="rb-editable-wrap relative min-w-0" dir={direction}>
       <Tag
         ref={ref as never}
         {...(readOnly ? {} : { contentEditable: true, suppressContentEditableWarning: true })}

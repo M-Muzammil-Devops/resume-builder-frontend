@@ -1,9 +1,28 @@
+# Keep the build context small and free of secrets.
+.git
+.gitignore
 node_modules
 .next
-.git
-*.md
-.env*
-!.env.example
+out
+dist
 coverage
+logs
 *.log
+*.md
+*.tsbuildinfo
 .DS_Store
+.vscode
+.idea
+.cursor
+# env files (never baked into the image; build args are passed explicitly)
+.env
+.env.*
+*.bak
+*.pem
+*.key
+# unit tests are not part of the app (some import the sibling backend repo)
+**/*.test.ts
+**/*.test.tsx
+Dockerfile
+.dockerignore
+docker-compose*.yml

@@ -35,6 +35,7 @@ test("BUG-1404 production style elements need the nonce or a Next built-in hash;
   }
   assert.equal(parts.find((d) => d.startsWith("style-src-attr")), "style-src-attr 'unsafe-inline'");
   assert.ok(parts.includes("worker-src 'self'"));
+  assert.ok(parts.includes("media-src 'self' blob:"));
   assert.ok(parts.includes("manifest-src 'self'"));
   assert.ok(parts.includes("upgrade-insecure-requests"));
   assert.equal(buildCsp("n", { dev: true }).includes("upgrade-insecure-requests"), false);
@@ -42,7 +43,7 @@ test("BUG-1404 production style elements need the nonce or a Next built-in hash;
 
 test("BUG-1404 hashes match the inline styles shipped in node_modules/next", () => {
   const cwd = process.cwd();
-  const root = fs.existsSync(path.join(cwd, "node_modules/next")) && fs.existsSync(path.join(cwd, "src/lib/csp.ts")) ? cwd : path.resolve(cwd, "../frontend");
+  const root = fs.existsSync(path.join(cwd, "node_modules/next")) && fs.existsSync(path.join(cwd, "src/lib/csp.ts")) ? cwd : path.resolve(cwd, "../resume-builder-frontend");
   const nextDir = path.join(root, "node_modules/next/dist/client/components");
   const load = createRequire(path.join(root, "package.json"));
   const theme = load(path.join(nextDir, "builtin/error-styles.js")).errorThemeCss as string;

@@ -12,6 +12,7 @@ import {
   normalizeHex,
 } from "@/lib/phase4Logic";
 
+import { fontStack } from "@/lib/fontStack";
 const LAYOUTS: { id: ColumnLayout; label: string }[] = [
   { id: "single", label: "Single" },
   { id: "wide-left", label: "Wide left" },
@@ -250,7 +251,7 @@ export function DesignPanel() {
                     ? "border-teal-500 bg-teal-50"
                     : "border-slate-200 hover:border-teal-300"
                 )}
-                style={{ fontFamily: `"${font.id}", sans-serif` }}
+                style={{ fontFamily: fontStack(font.id) }}
               >
                 <div className="text-xs font-semibold">{font.label}</div>
                 {"note" in font && font.note && (

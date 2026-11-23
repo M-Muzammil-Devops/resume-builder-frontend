@@ -1,5 +1,6 @@
 "use client";
 
+import { takeAuthNotice } from "@/lib/continueAfterAuth";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Copy, LayoutTemplate, Mail, Plus, Search, Trash2 } from "lucide-react";
@@ -57,6 +58,7 @@ export default function DashboardPage() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"updated" | "title">("updated");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -64,6 +66,9 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState("Hello");
   useEffect(() => {
     setGreeting(greetingForHour(new Date().getHours()));
+    // BUG-1327/1329: a template picked before sign-in that could not be created (402 plan limit).
+    const note = takeAuthNotice();
+    if (note) setNotice(note);
   }, []);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -193,7 +198,7 @@ export default function DashboardPage() {
   }
   return (
     <AppShell>
-      <main className="p-8">
+      <main className="mx-auto w-full max-w-[1180px] p-8 max-sm:p-5">
         <div className="app-page-in mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="min-h-5 text-sm font-semibold text-[var(--rb-teal-dark)]">{greeting}</p>
@@ -219,6 +224,14 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {notice && (
+          <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span>{notice}</span>
+            <button type="button" className="shrink-0 font-semibold underline" onClick={() => setNotice(null)} aria-label="Dismiss">
+              Dismiss
+            </button>
+          </div>
+        )}
         {error && (
           <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -233,7 +246,7 @@ export default function DashboardPage() {
           </div>
         ) : loadFailed ? (
           <div role="alert" className="dash-empty">
-            <h3 className="auth-display text-lg font-bold text-slate-900">We couldn't load your documents</h3>
+            <h3 className="auth-display text-lg font-bold text-slate-900">We couldn&apos;t load your documents</h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
               Something went wrong on our side. Check your connection and try again.
             </p>

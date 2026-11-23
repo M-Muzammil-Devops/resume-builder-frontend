@@ -23,3 +23,10 @@ uploads/
 *.bak
 *.log
 *.tsbuildinfo
+
+# deployment / local tooling
+*.pem
+*.key
+*.p12
+.cursor/
+next-env.d.ts.bak

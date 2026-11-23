@@ -5,7 +5,7 @@ import {
   Paragraph,
   TextRun,
 } from "docx";
-import type { ResumeDocument } from "@/shared";
+import { isLetterPage, type ResumeDocument } from "@/shared";
 import { flattenResumeText } from "@/lib/atsEngine";
 
 function paragraph(line: string, font: string) {
@@ -29,7 +29,7 @@ function paragraph(line: string, font: string) {
 }
 
 export async function resumeToDocxBlob(doc: ResumeDocument): Promise<Blob> {
-  const letter = doc.design.pageSize === "US Letter";
+  const letter = isLetterPage(doc.design.pageSize);
   const font = doc.design.fontFamily || "Calibri";
   const children = flattenResumeText(doc).split("\n").map((line) => paragraph(line, font));
   const file = new Document({

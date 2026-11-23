@@ -523,6 +523,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         sectionHeadingStyle: "underline",
         contactLayout: "row",
         entryLayout: "side-meta",
+        listColumns: undefined,
+        density: undefined,
       };
     }
 

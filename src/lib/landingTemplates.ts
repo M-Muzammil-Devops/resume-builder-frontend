@@ -113,10 +113,13 @@ export const LANDING_TEMPLATES: LandingTemplate[] = [
     name: "Strategy Clean",
     blurb: "Leadership resume with skills descriptions.",
     image: "/templates/strategy-clean.webp",
-    layoutKey: "single-column",
+    layoutKey: "crest",
     accentColor: "#0f172a",
     fontFamily: "Raleway",
     templateId: "tmpl-landing-strategy-clean",
+    department: "Leadership",
+    hasPhoto: false,
+    columns: "double",
   },
   {
     id: "precision-line",
@@ -127,6 +130,18 @@ export const LANDING_TEMPLATES: LandingTemplate[] = [
     accentColor: "#1e3a5f",
     fontFamily: "Montserrat",
     templateId: "tmpl-landing-precision-line",
+  },
+  {
+    id: "emerald-numbered",
+    name: "Emerald Numbered",
+    blurb: "Initials badge with numbered green section headers.",
+    image: "/templates/emerald-numbered.webp",
+    layoutKey: "numbered",
+    accentColor: "#15803d",
+    fontFamily: "Lato",
+    templateId: "tmpl-landing-emerald-numbered",
+    hasPhoto: false,
+    columns: "single",
   },
 ];
 

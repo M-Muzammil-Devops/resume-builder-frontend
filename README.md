@@ -97,3 +97,104 @@ frontend/
 ├── Dockerfile
 └── package.json
 ```
+## Landing templates: adding or changing one
+
+The landing gallery and the editor's template picker show a thumbnail per template. Each
+thumbnail is a screenshot of the **real** `ResumeCanvas` render of that template's starter resume,
+so what a user picks is exactly what they get in the editor, preview, PDF and share link.
+
+Where things live:
+
+- `src/lib/landingTemplates.ts`: the card (`id`, name, `image: /templates/<id>.webp`, `layoutKey`,
+  `templateId: tmpl-landing-<id>`).
+- `src/shared/templateStarter.ts` ? `LANDING_PRESETS[<id>]`: the design. Use the reusable options
+  rather than one-off CSS: `sectionHeadingStyle` (`underline`, `icon-line`, `numbered`, `banner`,
+  `centered-rule`, `ruled-center`), `entryLayout` (`side-meta`, `stacked`, `date-left`),
+  `listColumns` (1–4 column bullet grid for skills/languages/certificates/interests),
+  `contactLayout` (`row`, `grid`), `titlePlacement`, `photoPosition`, `headerSettings`,
+  `skillsLayout`, `hideSkillGroups`, `hideLanguageBars`, `hideLanguageLevel`,
+  `hideCertificationDetails`, `hideLogos`, `hideExperienceDescription`, `sectionTitles`.
+  The columns (`leftColumnIds` / `rightColumnIds`) are also the starter's section list: sections
+  not in a column are left out of a new resume.
+- `src/shared/templateContent.ts` ? `TEMPLATE_SAMPLES[<id>]`: the starter text. Keep it to the
+  page count in `EXPECTED_PAGES` (`src/lib/templateFingerprint.ts`, default 1 page).
+- Mirror both shared files into `resume-builder-backend/src/shared/`.
+
+Steps:
+
+1. Add the card, the preset and the sample (same `id` everywhere).
+2. Start the frontend (`npm run build && npm run start`, or `npm run dev`).
+3. `npm run templates:thumbs` (or `npm run templates:thumbs -- <id>`). It opens
+   `/template-preview/<id>`, writes `public/templates/<id>.webp|png` and updates
+   `public/templates/manifest.json` (fingerprint + printed page count). It also writes the small
+   carousel copies `public/templates/thumbs/<id>-560.webp` and `<id>-280.webp`.
+4. Rebuild / redeploy the frontend (Next serves `public/` from the build).
+5. `npm test` in the backend runs `src/lib/templateThumbs.test.ts`. It fails when a landing
+   template has no real-render thumbnail, when its preset or starter text changed after the
+   thumbnail was made, or when the starter prints on more pages than expected.
+
+If you change how the canvas draws templates (CSS or markup), bump `RENDER_VERSION` in
+`src/lib/templateFingerprint.ts` and rerun step 3.
+
+
+## Tools: Audio Noise Remover
+
+| Route | What |
+|---|---|
+| `/tools/audio-noise-remover` | Tool page, "Remove noise" mode |
+| `/tools/ai-voice-cleaner` | Same page, "Voice clean" mode preselected |
+
+- **Header menu:** `src/components/nav/ToolsMenu.tsx`. Add new tools to `src/components/nav/tools.ts`; the landing nav, the tool pages and the mobile menus all read from it. The app sidebar has a **Tools** link too.
+- **Page:** `src/components/tools/audio/` (`AudioToolPage`, `AudioCleaner`, `Waveform`, one CSS module). API client: `src/lib/audioApi.ts`.
+- **Modes:** a 3-way selector — **Remove noise**, **All voices** (`conversation`: meetings and rooms with several or far-away talkers; gentle 8–12 dB, nothing gated) and **Voice clean**. Under the strength slider a hint shows the cap, e.g. "noise down up to 15 dB" (`maxReductionDb()` in `src/lib/audioLimits.ts`, same table as the backend README).
+- **One file at a time:** if an upload gets **409** (the user's earlier file is still processing, e.g. started in another tab), the panel says "Your earlier file is still processing", follows that job's progress, and offers **Cancel it & upload new file** (DELETE, then the picked file uploads) or **Cancel earlier file**. On page load the tool also asks `GET /audio/jobs/active`, so a job started elsewhere is shown and can be canceled.
+- **Flow:** upload with progress → queued → steps → Before/After players with an A/B toggle → download. Logged-out users are sent to `/login?next=/tools/...`.
+- **Drop zone:** a click anywhere in the upload box (icon, text, empty space) opens the file picker; "browse files" is plain text inside it, so there is one handler and no double open. The inner part is a `role="button"` with a tab stop: **Enter/Space** opens the picker and the whole zone gets a focus ring (`.drop:has(.pick:focus-visible)`). Drag and drop still works. Elements marked `data-no-pick` (the remove ✕ button, the login links, the hidden input) never open it (`shouldOpenPicker()` in `src/lib/playbackSpeed.ts`).
+- **Playback speed:** the result player and the Example card have a compact **Speed** pill: 0.75×, 1×, 1.25×, 1.5×, 2× (default 1×). One speed covers Before and After, so it carries over A/B switches and changes live while playing. `applySpeed()` sets `playbackRate`, `defaultPlaybackRate` (kept after a new `src`) and `preservesPitch` with the `webkitPreservesPitch` / `mozPreservesPitch` fallbacks, so voices keep their pitch. Keyboard: Tab to the current speed, ←/→ (↑/↓, Home/End) to change. Component: `SpeedControl.tsx`, CSS module only (no inline styles). Tests: `src/lib/playbackSpeed.test.ts`.
+- **Example (Before/After):** the empty result panel plays a 10 s demo (`public/tools/demo/before|after.webm`, MP3 fallback, ~60–75 KB each, `preload="none"`). One clip plays at a time and switching keeps the position. It hides once a job starts. Peaks: `demoPeaks.ts`.
+- **Hero:** centered 1180 px container aligned with the header (two columns, 20 px gap). The badges sit beside the character on wide screens and in a row under him below 1100 px, so they never cover him.
+- **Limits:** up to 100 MB · 20 min (`src/lib/audioLimits.ts`; the page reads the real values from `/audio/capabilities`). Long files show chunk progress from `chunks.done/total`: the step text reads "Denoising · Part 3 of 19" and the hint "Part 3 of 19 · ~40s left" (`progressHint()`).
+- **Hourly limit:** 10 finished files per hour per user (admin / owner accounts are not limited; canceled or failed files don't count). When it's reached, the panel shows the API's wait time, e.g. "Try again in ~12 min".
+- **Layout:** the two tool columns never overlap. Long file names end with "…", mode buttons wrap to two lines, and the sticky header turns solid when you scroll. Checked at 100% and 110% zoom from 375 to 1920 px.
+- **Performance:** the waveform is drawn on a canvas from server-computed peaks (no audio decoding in the browser). The strength slider is sent as a whole number 0-100 (the API rejects anything else with 400). Previews stream straight from short-lived **signed links** (`previews` in the job, 5 min) with `preload="metadata"`: no blob download, nothing re-fetched on each play (the browser uses Range requests and the private cache). Pause and Cancel stay clickable while a track loads. When a link is about to expire or fails, the player gets a fresh one and resumes at the same position. Previews are mono MP3, 48 kbps, never bigger than the source. The character art is one 65 KB WebP.
+- **CSP:** `media-src 'self' blob:` added for the players. The page uses no inline styles.
+- **Uploads:** `next.config.ts` sets `experimental.proxyClientMaxBodySize = "110mb"`. The `/rb-api` proxy allows **60 minutes** for `POST /audio/*` (env `AUDIO_UPLOAD_TIMEOUT_MS`, minimum 60 s). Node's own 5-minute `requestTimeout` would cut a slow 100 MB upload, so production starts with `node --require ./server-timeouts.cjs node_modules/next/dist/bin/next start ...`; the preload sets `requestTimeout` to the upload timeout + 60 s (tested in `src/lib/serverTimeouts.test.ts`).
+- **Note:** Cloudflare quick tunnels cap request bodies at about 100 MB, so a file right at 100 MB may be refused at the edge (413) before it reaches the app.
+
+Backend details (engine, endpoints, limits, setup): `resume-builder-backend/README.md` → *Audio tool*.
+
+## Layout containers
+
+All main pages use one centered content width aligned with the header: landing and tool pages 1180 px, user dashboard `max-w-[1180px] mx-auto`, admin pages `.admin-main > *` capped at 1180 px. Checked at 1920, 1536, 1440, 1280, 1160, 1024 and 375 px (no horizontal overflow, no overlaps). The editor layout is unchanged.
+
+## Login redirects
+
+Template picked before sign-in + free plan already full: `POST /resumes` answers **402**, and the dashboard shows "Free plan limit reached: “<template>” wasn't added to your resumes. Upgrade to Pro, or delete a resume to make room…" instead of opening silently (`continueAfterAuth.ts` → `takeAuthNotice()`). Other failures say the template couldn't open.
+
+## Editor on phones
+
+At ≤ 720 px the editor keeps the real A4 / Letter paper width inside `.editor-canvas-scale` and shrinks it with the zoom (45% at 375 px). A `width: 100%` there used to feed back through the resize observer until the page was a ~59 px sliver (BUG-1328).
+
+`/login?next=...` is parsed by `parseLoginNext()` in `src/lib/loginNext.ts`. `next=template&tpl=<id>` opens the editor with that template; any other `next` must be a safe relative path (starts with one `/`, no `//`, no backslash, no scheme), otherwise the user goes to the dashboard. Password login **and** Demo login both use it.
+
+## Fonts
+
+Raleway and Montserrat are loaded once with `next/font/local` in `src/app/layout.tsx` (CSS variables `--font-raleway` and `--font-montserrat`, files in `public/fonts/`). There are no `@font-face` rules for them in `globals.css`. CSS uses `var(--font-raleway)` / `var(--font-montserrat)`; resume content that stores a family name goes through `fontStack(name)` in `src/lib/fontStack.ts`, which maps those two names to the next/font variable.
+
+## Landing page performance
+
+| What | How |
+|---|---|
+| Scroll reveal | `[data-reveal]` fades in (opacity only, 0.28 s). Starts 200 px before the viewport, and anything already on screen (load, anchor, jump, scroll end) shows at once. |
+| Parallax | `useAuroraMotion.ts` measures shapes once (and on resize), then each frame only writes transforms for visible shapes. |
+| One scroll listener | `onScrollFrame()` / `onScrollStart()` in `useAuroraMotion.ts`: one passive `scroll` + `wheel` listener for the page, subscribers run once per animation frame with `scrollY` only (no layout reads). Reveal, parallax and the nav all ride it. |
+| Floats pause | Off-screen floats are paused (`data-off`); on-screen floats pause during any scroll, including the mouse wheel (`data-pause` on just those few nodes, not a class on the page root, so a scroll start restyles a handful of elements, not the whole page). |
+| Anchor jumps | Clicking an in-page link or a hash change shows the target section and everything in view at once, with no fade (BUG-1318). |
+| Hero smear (1024) | The streaky rectangle behind the hero character was inside the baked shadow image: the bake script read a 3-channel buffer as 1-channel, which drew horizontal stripes. `scripts/bake-shadows.cjs` now shifts the mask in JS, blurs a true 1-channel image and feathers the shadow at the image edges. The hero stage is also `transform-style: flat`, so the tilted sheet is never depth-sorted against the character. |
+| Layers | No `will-change`, no blur filters, and no `backdrop-filter` except the PREVIEW modal scrim on desktop. |
+| Template cards | 280w / 560w WebP via `srcset` (`cardImage()` in `aurora/data.ts`). The PREVIEW modal keeps the full image. |
+| Shadows | No `filter: drop-shadow`. Character shadows are baked into `*-shadow.webp` images (`node scripts/bake-shadows.cjs`); boxes use `box-shadow`. |
+| Header | Shows **Dashboard** when signed in, **Log in / Get started** otherwise. A same-size placeholder is shown until the session is read, so the wrong state never flashes. |
+| Hero badges | Move with the figure (same parallax); below 1240 px they stack in a row under the figure. |
+
+Checked by `src/components/landing/aurora/landingPerf.test.ts` (part of the backend `npm test`).

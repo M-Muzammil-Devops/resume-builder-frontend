@@ -7,7 +7,7 @@ import type { ResumeDocument } from "@/shared";
 import { PAPER_COLORS } from "@/lib/paper";
 import { useDocumentCss } from "@/hooks/useDocumentCss";
 import { scrubPlaceholders, setProvenanceMode } from "@/lib/placeholders";
-import { hasSampleMarks } from "@/shared";
+import { hasSampleMarks, isLetterPage } from "@/shared";
 
 declare global {
   interface Window {
@@ -57,7 +57,7 @@ function PrintView({ id }: { id: string }) {
     };
   }, [id, token, setDocument]);
 
-  const letter = resumeDoc?.design.pageSize === "US Letter";
+  const letter = isLetterPage(resumeDoc?.design.pageSize);
   // BUG-506: the page (margins included) uses the paper colour the user picked.
   const paper = PAPER_COLORS[resumeDoc?.design.background || "white"] || "#ffffff";
   const pagePad = resumeDoc
@@ -80,8 +80,10 @@ function PrintView({ id }: { id: string }) {
           -webkit-box-decoration-break: clone;
           box-shadow: none !important;
         }
-        .rb-section-hit, .rb-entry, h2, h3, table, tr { break-inside: avoid; page-break-inside: avoid; }
-        h2, h3 { break-after: avoid; page-break-after: avoid; }
+        /* BUG-1290: long sections split between entries; a heading stays with its first entry. */
+        .rb-section-hit.group\\/header, .rb-section-hit:not(:has(.rb-entry)), .rb-entry, h2, h3, table, tr { break-inside: avoid; page-break-inside: avoid; }
+        h2, h3, .rb-section-hit > :first-child { break-after: avoid; page-break-after: avoid; }
+        [data-page-push] { margin-top: var(--rb-base-mt, 0px) !important; }
         a { color: inherit; text-decoration: underline; }
         /* BUG-027: empty fields never print their placeholder hint. */
         input::placeholder, textarea::placeholder { color: transparent !important; }

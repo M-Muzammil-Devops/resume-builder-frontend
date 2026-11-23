@@ -33,7 +33,8 @@ export type LayoutKey =
   | "ivy-league"
   | "crest"
   | "contemporary"
-  | "polished";
+  | "polished"
+  | "numbered";
 
 export interface ContactInfo {
   phone?: string;
@@ -105,7 +106,7 @@ export interface SectionSettings {
   username?: boolean;
   /** Section heading in ALL CAPS (section-head gear only) */
   uppercaseTitles?: boolean;
-  skillsLayout?: "tags" | "list" | "bullets";
+  skillsLayout?: "tags" | "list" | "bullets" | "underline";
   skillBorder?: boolean;
   /** Languages: visual style for proficiency meter */
   languageSliderStyle?: "bars" | "dots" | "squares" | "line" | "pills";
@@ -372,16 +373,22 @@ export interface ResumeDesign {
   pageSize: "A4" | "US Letter";
   /** Header chrome: default underline vs solid banner band */
   headerStyle?: "default" | "banner" | "centered";
+  /** Initials square beside the name instead of a photo (Emerald Numbered) */
+  headerMonogram?: boolean;
   /** Photo beside name: left (Ivy/Saffron) or right (default) */
   photoPosition?: "left" | "right";
   /** Job title under name, or italic beside name */
   titlePlacement?: "below" | "beside";
   /** Section titles: accent underline vs icon + accent rule */
-  sectionHeadingStyle?: "underline" | "icon-line";
+  sectionHeadingStyle?: "underline" | "icon-line" | "numbered" | "banner" | "centered-rule" | "ruled-center";
   /** Contact fields: compact wrap row vs multi-column grid */
   contactLayout?: "row" | "grid";
   /** Experience/education: dates beside company vs stacked under title */
-  entryLayout?: "side-meta" | "stacked";
+  entryLayout?: "side-meta" | "stacked" | "date-left";
+  /** Short lists (skills, languages, certificates, interests) as an N-column bullet grid; unset = off. */
+  listColumns?: 1 | 2 | 3 | 4;
+  /** "compact": tighter entry padding, no dotted dividers (dense one-page templates). */
+  density?: "comfortable" | "compact";
 }
 
 export interface ResumeContent {

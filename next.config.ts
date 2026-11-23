@@ -4,7 +4,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Docker image only (the Dockerfile sets NEXT_STANDALONE=1): self-contained server in .next/standalone.
+  ...(process.env.NEXT_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   allowedDevOrigins: ["*.trycloudflare.com"],
+  experimental: {
+    // Audio tool uploads (100 MB + multipart overhead) pass through the proxy layer.
+    proxyClientMaxBodySize: "110mb",
+  },
   async headers() {
     return [
       {

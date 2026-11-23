@@ -1,6 +1,8 @@
 import type { LayoutKey, ResumeContent, ResumeDesign } from "./types";
 import { DEFAULT_DESIGN, DEFAULT_HEADER_SETTINGS } from "./defaults";
 import { markSampleContent, sampleLeaves } from "./sampleMarks";
+import { TEMPLATE_SAMPLES, applyTemplateSample } from "./templateContent";
+import { isSamplePhoto } from "./photoSlot";
 
 /** Generic placeholder content for new resumes (not personal sample data). */
 export const TEMPLATE_STARTER_CONTENT: ResumeContent = {
@@ -230,7 +232,21 @@ export type LandingTemplatePreset = {
   entryLayout?: NonNullable<ResumeDesign["entryLayout"]>;
   leftColumnIds: string[];
   rightColumnIds: string[];
-  skillsLayout?: "tags" | "list" | "bullets";
+  skillsLayout?: "tags" | "list" | "bullets" | "underline";
+  /** Short lists as an N-column bullet grid (skills in bullets layout, languages, certificates, interests). */
+  listColumns?: NonNullable<ResumeDesign["listColumns"]>;
+  /** Entry density (default "compact", like the landing previews). */
+  density?: NonNullable<ResumeDesign["density"]>;
+  /** Page margin level 0–8 (default 2). */
+  pageMargins?: number;
+  /** Achievements without their icons (Classic Serif 3-column row). */
+  hideAchievementIcons?: boolean;
+  /** Hide the language level text too (just the language name). */
+  hideLanguageLevel?: boolean;
+  /** Hide certificate issuer + credential link (name only). */
+  hideCertificationDetails?: boolean;
+  /** Initials square instead of a photo in the header. */
+  headerMonogram?: boolean;
   /** Hide skill group labels (Core skills / Tools). */
   hideSkillGroups?: boolean;
   /** Hide language proficiency bars. */
@@ -256,15 +272,29 @@ export const LANDING_PRESETS: Record<string, LandingTemplatePreset> = {
     headerStyle: "centered",
     photoPosition: "right",
     titlePlacement: "below",
-    sectionHeadingStyle: "underline",
+    sectionHeadingStyle: "centered-rule",
     contactLayout: "row",
-    entryLayout: "stacked",
+    entryLayout: "side-meta",
     leftColumnIds: ["summary", "experience", "education", "achievements", "skills", "certifications"],
     rightColumnIds: [],
     skillsLayout: "list",
+    listColumns: 3,
+    hideAchievementIcons: true,
+    hideCertificationDetails: true,
+    hideSkillGroups: true,
     hideLogos: true,
-    headerSettings: { photo: false, uppercaseName: false },
+    hideExperienceDescription: true,
+    sectionTitles: {
+      summary: "Summary",
+      experience: "Experience",
+      education: "Education",
+      achievements: "Key Achievements",
+      skills: "Skills",
+      certifications: "Certification",
+    },
+    headerSettings: { photo: false, uppercaseName: true },
   },
+
   "marketing-cyan": {
     id: "marketing-cyan",
     layoutKey: "high-performer",
@@ -361,15 +391,37 @@ export const LANDING_PRESETS: Record<string, LandingTemplatePreset> = {
     columnLayout: "single",
     headerStyle: "default",
     photoPosition: "right",
-    titlePlacement: "below",
-    sectionHeadingStyle: "underline",
+    titlePlacement: "beside",
+    sectionHeadingStyle: "banner",
     contactLayout: "grid",
-    entryLayout: "stacked",
+    entryLayout: "date-left",
     leftColumnIds: ["summary", "experience", "education", "skills", "languages", "certifications"],
     rightColumnIds: [],
-    skillsLayout: "list",
+    skillsLayout: "bullets",
+    listColumns: 3,
+    hideSkillGroups: true,
+    hideLanguageBars: true,
+    hideLanguageLevel: true,
+    hideCertificationDetails: true,
     hideLogos: true,
+    hideExperienceDescription: true,
+    sectionTitles: {
+      summary: "Summary",
+      experience: "Professional Experience",
+      education: "Education",
+      skills: "Skills",
+      languages: "Languages",
+      certifications: "Certificates",
+    },
+    headerSettings: {
+      uppercaseName: false,
+      nationality: true,
+      dateOfBirth: true,
+      photo: true,
+      photoStyle: "circle",
+    },
   },
+
   "saffron-line": {
     id: "saffron-line",
     layoutKey: "ivy-league",
@@ -426,7 +478,8 @@ export const LANDING_PRESETS: Record<string, LandingTemplatePreset> = {
   },
   "strategy-clean": {
     id: "strategy-clean",
-    layoutKey: "single-column",
+    // Two columns: "single-column" would force one column (isSingleColumnLayout).
+    layoutKey: "crest",
     accentColor: "#0f172a",
     inkColor: "#0f172a",
     fontFamily: "Raleway",
@@ -434,13 +487,29 @@ export const LANDING_PRESETS: Record<string, LandingTemplatePreset> = {
     headerStyle: "default",
     photoPosition: "right",
     titlePlacement: "below",
-    sectionHeadingStyle: "underline",
+    sectionHeadingStyle: "ruled-center",
     contactLayout: "row",
-    entryLayout: "side-meta",
+    entryLayout: "stacked",
     leftColumnIds: ["summary", "experience"],
     rightColumnIds: ["education", "skills", "languages", "certifications"],
     skillsLayout: "list",
+    listColumns: 1,
+    hideLanguageBars: true,
+    hideLanguageLevel: true,
+    hideCertificationDetails: true,
+    hideLogos: true,
+    hideExperienceDescription: true,
+    sectionTitles: {
+      summary: "Summary",
+      experience: "Professional Experience",
+      education: "Education",
+      skills: "Skills",
+      languages: "Languages",
+      certifications: "Certificates",
+    },
+    headerSettings: { photo: false, uppercaseName: false },
   },
+
   "precision-line": {
     id: "precision-line",
     layoutKey: "timeline",
@@ -453,11 +522,48 @@ export const LANDING_PRESETS: Record<string, LandingTemplatePreset> = {
     titlePlacement: "below",
     sectionHeadingStyle: "underline",
     contactLayout: "row",
-    entryLayout: "stacked",
+    entryLayout: "side-meta",
     leftColumnIds: ["summary", "experience", "education", "skills", "languages", "certifications"],
     rightColumnIds: [],
+    skillsLayout: "bullets",
+    listColumns: 4,
+    hideSkillGroups: true,
+    hideLanguageBars: true,
+    hideCertificationDetails: true,
     hideLogos: true,
+    hideExperienceDescription: true,
     headerSettings: { photo: false, uppercaseName: false },
+  },
+
+  "emerald-numbered": {
+    id: "emerald-numbered",
+    layoutKey: "numbered",
+    accentColor: "#15803d",
+    inkColor: "#0f172a",
+    fontFamily: "Lato",
+    columnLayout: "single",
+    headerStyle: "default",
+    photoPosition: "left",
+    titlePlacement: "below",
+    sectionHeadingStyle: "numbered",
+    contactLayout: "row",
+    entryLayout: "side-meta",
+    // The preview shows Summary, Experience, Skills (+ Education fits on the same page).
+    leftColumnIds: ["summary", "experience", "skills", "education"],
+    rightColumnIds: [],
+    skillsLayout: "underline",
+    hideLogos: true,
+    headerMonogram: true,
+    sectionTitles: {
+      summary: "Summary",
+      experience: "Experience",
+      skills: "Skills",
+      education: "Education",
+      certifications: "Certifications",
+      languages: "Languages",
+    },
+    // The initials square IS the photo slot: on by default, shows the photo once uploaded.
+    headerSettings: { photo: true, photoStyle: "square", uppercaseName: true },
   },
 };
 
@@ -496,10 +602,23 @@ export function applyPresetStructure(
         },
       };
     }
-    if (section.type === "languages" && preset.hideLanguageBars) {
+    if (section.type === "languages" && (preset.hideLanguageBars || preset.hideLanguageLevel)) {
       return {
         ...section,
-        settings: { ...(section.settings || {}), description: false },
+        settings: {
+          ...(section.settings || {}),
+          ...(preset.hideLanguageBars ? { description: false } : {}),
+          ...(preset.hideLanguageLevel ? { subtitle: false } : {}),
+        },
+      };
+    }
+    if (section.type === "achievements" && preset.hideAchievementIcons) {
+      return { ...section, settings: { ...(section.settings || {}), icons: false } };
+    }
+    if (section.type === "certifications" && preset.hideCertificationDetails) {
+      return {
+        ...section,
+        settings: { ...(section.settings || {}), subtitle: false, link: false, datePeriod: false },
       };
     }
     if (section.type === "experience") {
@@ -519,15 +638,19 @@ export function applyPresetStructure(
       };
     }
     if (section.type === "header") {
+      // An uploaded photo survives a template switch: it moves into the new template's slot
+      // (unless the new header is centred text-only), keeping the user's own show/hide choice.
+      // A template's sample headshot is not the user's photo: it follows the new template's setting.
+      const keepPhoto = Boolean(section.photoUrl) && !isSamplePhoto(section.photoUrl) && preset.headerStyle !== "centered";
       const photoOff =
-        preset.headerStyle === "centered" || preset.headerSettings?.photo === false;
+        preset.headerStyle === "centered" || (preset.headerSettings?.photo === false && !keepPhoto);
       return {
         ...section,
         settings: {
           ...DEFAULT_HEADER_SETTINGS,
           ...section.settings,
           ...preset.headerSettings,
-          ...(photoOff ? { photo: false } : {}),
+          ...(photoOff ? { photo: false } : keepPhoto ? { photo: section.settings?.photo ?? true } : {}),
         },
         contact: {
           ...section.contact,
@@ -553,11 +676,32 @@ export function applyPresetStructure(
   return next;
 }
 
+/**
+ * Landing-match: a new resume starts with exactly the sections its landing preview shows (the
+ * preset's columns). Sections outside the columns would otherwise be appended at the end and spill
+ * onto an extra page (e.g. a lone "Passions" entry on page 3).
+ */
+export function presetSections(content: ResumeContent, preset: LandingTemplatePreset): ResumeContent {
+  const keep = new Set([...preset.leftColumnIds, ...preset.rightColumnIds]);
+  return { ...content, sections: content.sections.filter((s) => s.type === "header" || keep.has(s.id)) };
+}
+
 export function buildTemplateContent(presetId: string): ResumeContent {
   const preset = LANDING_PRESETS[presetId];
-  const base = structuredClone(TEMPLATE_STARTER_CONTENT);
-  if (!preset) return markSampleContent(base);
-  return markSampleContent(applyPresetStructure(base, preset));
+  if (!preset) return markSampleContent(structuredClone(TEMPLATE_STARTER_CONTENT));
+  const base = presetSections(structuredClone(TEMPLATE_STARTER_CONTENT), preset);
+  const sample = TEMPLATE_SAMPLES[preset.id];
+  if (!sample) return markSampleContent(applyPresetStructure(base, preset));
+  // Role-specific starter text is real, usable content: it is NOT marked as sample, so it stays in
+  // PDF/TXT/DOCX even if the user never edits it. Only leftover generic placeholders keep a mark.
+  const sampled = applyTemplateSample(base, sample);
+  const fromSample = new Map(sampleLeaves(sampled).map((leaf) => [leaf.path, leaf.value]));
+  const built = markSampleContent(applyPresetStructure(sampled, preset));
+  const sampleFields: Record<string, string> = {};
+  for (const [path, value] of Object.entries(built.sampleFields || {})) {
+    if (fromSample.get(path) !== value) sampleFields[path] = value;
+  }
+  return { ...built, sampleFields };
 }
 
 export function buildTemplateDesign(presetId: string): ResumeDesign {
@@ -578,6 +722,10 @@ export function buildTemplateDesign(presetId: string): ResumeDesign {
     sectionHeadingStyle: preset.sectionHeadingStyle || "underline",
     contactLayout: preset.contactLayout || "row",
     entryLayout: preset.entryLayout || "side-meta",
-    pageMargins: 4,
+    ...(preset.listColumns ? { listColumns: preset.listColumns } : {}),
+    // Landing previews are dense one-page layouts: tight entries, narrower margins.
+    density: preset.density ?? "compact",
+    ...(preset.headerMonogram ? { headerMonogram: true } : {}),
+    pageMargins: preset.pageMargins ?? 2,
   };
 }

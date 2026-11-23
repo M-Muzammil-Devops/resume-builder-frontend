@@ -111,6 +111,25 @@ export function generateTemplates(): TemplateMeta[] {
     hp.name = "DevOps High Performer";
   }
 
+  // Emerald Numbered: appended after the generated list so existing template ids never shift.
+  for (const [dept, accent] of [
+    ["DevOps", "#15803d"],
+    ["Cloud", "#047857"],
+    ["SRE", "#166534"],
+    ["Platform", "#15803d"],
+  ] as const) {
+    templates.push({
+      id: `tmpl-${dept.toLowerCase()}-numbered`,
+      name: `${dept} Numbered`,
+      department: dept,
+      layoutKey: "numbered",
+      accentColor: accent,
+      fontFamily: "Lato",
+      isPremium: false,
+      previewLabel: "Numbered",
+    });
+  }
+
   return templates;
 }
 

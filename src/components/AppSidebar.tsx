@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import {
+  AudioLines,
   Briefcase,
   FileText,
   LayoutDashboard,
@@ -61,6 +62,15 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             </Link>
           );
         })}
+        <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Tools</p>
+        <Link
+          href="/tools/audio-noise-remover"
+          onClick={onNavigate}
+          className="app-nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <AudioLines size={18} />
+          Noise Remover
+        </Link>
         <Link
           href="/user/editor/local-demo"
           onClick={onNavigate}

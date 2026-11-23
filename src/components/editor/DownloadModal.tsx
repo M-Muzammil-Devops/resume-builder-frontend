@@ -50,6 +50,7 @@ export function DownloadModal({ documentId }: { documentId: string }) {
           title: document.title,
           content: document.content,
           design: document.design,
+          layoutKey: document.layoutKey,
         }),
       });
       const type = res.headers.get("content-type") || "";

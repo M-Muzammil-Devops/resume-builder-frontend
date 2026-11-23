@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { sanitizeHtml } from "./sanitizeHtml";
-import { sanitizeHtml as apiSanitize } from "../../../backend/src/lib/sanitizeHtml";
+import { sanitizeHtml as apiSanitize } from "../../../resume-builder-backend/src/lib/sanitizeHtml";
 
 test("BUG-402 frontend and backend sanitisers give identical output", () => {
   const samples = [

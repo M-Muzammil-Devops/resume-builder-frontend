@@ -26,7 +26,7 @@ body {
   min-height: 100%;
   background: var(--rb-bg);
   color: var(--rb-ink);
-  font-family: "Raleway", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-raleway), "Segoe UI", ui-sans-serif, system-ui, sans-serif;
 }
 
 button,
@@ -63,12 +63,9 @@ a {
 @font-face { font-family: "Gelasio"; src: url("/fonts/Gelasio-Bold.woff") format("woff"), url("/fonts/Gelasio-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: "Lato"; src: url("/fonts/Lato-Regular.woff") format("woff"), url("/fonts/Lato-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Lato"; src: url("/fonts/Lato-Bold.woff") format("woff"), url("/fonts/Lato-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: "Montserrat"; src: url("/fonts/Montserrat-Regular.woff") format("woff"), url("/fonts/Montserrat-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "Montserrat"; src: url("/fonts/Montserrat-Bold.woff") format("woff"), url("/fonts/Montserrat-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
+/* Raleway + Montserrat: next/font in src/app/layout.tsx (--font-raleway / --font-montserrat), BUG-1320. */
 @font-face { font-family: "Oswald"; src: url("/fonts/Oswald-Regular.woff") format("woff"), url("/fonts/Oswald-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Oswald"; src: url("/fonts/Oswald-Bold.woff") format("woff"), url("/fonts/Oswald-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
-@font-face { font-family: "Raleway"; src: url("/fonts/Raleway-Regular.woff") format("woff"), url("/fonts/Raleway-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "Raleway"; src: url("/fonts/Raleway-Bold.woff") format("woff"), url("/fonts/Raleway-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: "Rubik"; src: url("/fonts/Rubik-Regular.woff") format("woff"), url("/fonts/Rubik-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "Rubik"; src: url("/fonts/Rubik-Bold.woff") format("woff"), url("/fonts/Rubik-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: swap; }
 @font-face { font-family: "Tinos"; src: url("/fonts/Tinos-Regular.woff") format("woff"), url("/fonts/Tinos-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: swap; }
@@ -89,14 +86,23 @@ a {
   font-weight: 400;
 }
 
+/* BUG-1290: sections may split between entries; only single entries (and the header) stay whole. */
 .resume-page h2,
 .resume-page h3,
-.rb-section-hit,
+.rb-section-hit.group\/header,
+.rb-section-hit:not(:has(.rb-entry)),
 .rb-entry,
 .resume-page table,
 .resume-page tr {
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+/* Keep each section heading with the first entry/paragraph that follows it. */
+.rb-section-hit > :first-child,
+.rb-section-hit > .rb-toolbar + * {
+  break-after: avoid;
+  page-break-after: avoid;
 }
 
 .resume-page h2,
@@ -211,8 +217,9 @@ a {
   .resume-sheet-host > .resume-page[data-bg="mint"] { background: #eef4f3 !important; }
   .resume-page[data-bg="warm"],
   .resume-sheet-host > .resume-page[data-bg="warm"] { background: #f5f0e8 !important; }
+  /* BUG-1290: drop only the on-screen page push, keep the element's own spacing (section gap). */
   [data-page-push] {
-    margin-top: 0 !important;
+    margin-top: var(--rb-base-mt, 0px) !important;
   }
   body * { visibility: hidden; }
   .resume-page, .resume-page * { visibility: visible; }
@@ -249,6 +256,12 @@ a {
 
 .resume-page .rb-section-hit + .rb-section-hit {
   margin-top: var(--rb-section-gap, 0px);
+}
+
+/* Tech Hex PDF: text-only sections (Summary) end without the bottom padding entry lists have,
+   so the next heading sat ~3pt under the last line. Give them the same trailing space. */
+.resume-page .rb-section-hit[data-rb-type="summary"] {
+  padding-bottom: 0.6rem;
 }
 
 .resume-page[data-bg="white"] {
@@ -295,6 +308,19 @@ a {
   .resume-page:not([data-page="letter"]) {
     width: min(210mm, 100%);
     min-height: auto;
+  }
+}
+/* BUG-1328: inside the editor the page is scaled to fit (transform: scale(zoom)), so it must keep its
+   real paper width. "100%" there was measured from the already-scaled frame, which shrank the page
+   again on every resize-observer pass until it was a ~59px sliver with one-letter-per-line text. */
+@media (max-width: 720px) {
+  .editor-canvas-scale .resume-page:not([data-page="letter"]) {
+    width: 210mm;
+    min-height: 297mm;
+  }
+  .editor-canvas-scale .resume-page[data-page="letter"] {
+    width: 8.5in;
+    min-height: 11in;
   }
 }
 
@@ -813,7 +839,7 @@ body[data-rb-date-popover="open"] .rb-selection-bottom {
 
 /* ── Auth pages ───────────────────────────────────────── */
 :root {
-  --font-auth-display: "Montserrat", "Raleway", ui-sans-serif, system-ui, sans-serif;
+  --font-auth-display: var(--font-montserrat), var(--font-raleway), ui-sans-serif, system-ui, sans-serif;
 }
 
 .auth-display {
@@ -2233,7 +2259,7 @@ body[data-rb-date-popover="open"] .rb-selection-bottom {
 .admin-root {
   background: #0f172a;
   color: #e2e8f0;
-  font-family: "Montserrat", "Raleway", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-montserrat), var(--font-raleway), ui-sans-serif, system-ui, sans-serif;
 }
 
 .admin-side {
@@ -2306,6 +2332,13 @@ body[data-rb-date-popover="open"] .rb-selection-bottom {
   flex: 1;
   min-width: 0;
   padding: clamp(1rem, 2vw, 1.75rem);
+}
+
+/* Round 23: admin content is a centred column (no stretched cards on wide screens). */
+.admin-main > * {
+  max-width: 1180px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .admin-panel {
@@ -2936,3 +2969,73 @@ html {
   padding-bottom: 88px;
 }
 
+
+/* Landing-match: edit-only hints (URL, Company Description, Add dates, Location, Add project
+   table, Credential URL...) appear only while that entry is hovered, focused or selected. They are
+   never part of the preview, PDF or share render. An entry whose fields are all empty keeps them,
+   so it never collapses to nothing. */
+.resume-page .rb-entry:not(:hover):not(:focus-within):not(.rb-entry-selected) .rb-hint,
+.resume-page .rb-entry:has(.rb-editable:not(:empty)):not(:hover):not(:focus-within):not(.rb-entry-selected) .rb-editable-wrap:has(> .rb-editable:empty) {
+  display: none !important;
+}
+@media print {
+  .rb-hint { display: none !important; }
+}
+
+/* entryLayout "date-left": dates + location in a left column beside each entry. */
+.resume-page.rb-dateleft .rb-entry:has(.rb-meta-left) {
+  position: relative;
+  padding-left: calc(23% + 0.75rem);
+}
+
+/* listColumns: skills / languages / certificates / interests as an N-column bullet grid. */
+.resume-page.rb-listcols-2 { --rb-listcols: 2; }
+.resume-page.rb-listcols-3 { --rb-listcols: 3; }
+.resume-page.rb-listcols-4 { --rb-listcols: 4; }
+.resume-page.rb-listcols [data-rb-type="skills"] ul.list-disc,
+.resume-page.rb-listcols [data-rb-type="languages"] .rb-entry-list,
+.resume-page.rb-listcols [data-rb-type="certifications"] .rb-entry-list,
+.resume-page.rb-listcols [data-rb-type="interests"] .rb-entry-list {
+  display: grid;
+  grid-template-columns: repeat(var(--rb-listcols, 3), minmax(0, 1fr));
+  column-gap: 1rem;
+  row-gap: 2px;
+}
+.resume-page.rb-listcols [data-rb-type="languages"] .rb-entry,
+.resume-page.rb-listcols [data-rb-type="certifications"] .rb-entry,
+.resume-page.rb-listcols [data-rb-type="interests"] .rb-entry {
+  display: list-item;
+  list-style: disc outside;
+  margin-left: 1.1em;
+  font-size: 12px;
+}
+.resume-page.rb-listcols-1 { --rb-listcols: 1; }
+
+/* density "compact": dense one-page templates (landing previews). */
+.resume-page.rb-compact .rb-entry { padding: 0.2rem 0.5rem 0.3rem; }
+.resume-page.rb-compact .rb-entry::after { display: none; }
+.resume-page.rb-compact .rb-entry-selected::after { display: none; }
+/* Bullet grids never draw entry dividers and keep rows tight. */
+.resume-page.rb-listcols [data-rb-type="languages"] .rb-entry,
+.resume-page.rb-listcols [data-rb-type="certifications"] .rb-entry,
+.resume-page.rb-listcols [data-rb-type="interests"] .rb-entry { padding: 0.1rem 0.25rem; }
+.resume-page.rb-listcols [data-rb-type="languages"] .rb-entry::after,
+.resume-page.rb-listcols [data-rb-type="certifications"] .rb-entry::after,
+.resume-page.rb-listcols [data-rb-type="interests"] .rb-entry::after { display: none; }
+.resume-page.rb-listcols [data-rb-type="skills"] ul.list-disc > li { line-height: 1.35; }
+/* Achievements as a row of N cards when the template asks for list columns (Classic Serif). */
+.resume-page.rb-listcols [data-rb-type="achievements"] .rb-entry-list {
+  display: grid;
+  grid-template-columns: repeat(var(--rb-listcols, 3), minmax(0, 1fr));
+  column-gap: 1rem;
+}
+.resume-page.rb-listcols [data-rb-type="achievements"] .rb-entry::after { display: none; }
+
+/* BUG-1298: a list grid never squeezes more columns than its column can hold. */
+.resume-page.rb-listcols-3 .rb-col-mid :is([data-rb-type="skills"] ul.list-disc, [data-rb-type="languages"] .rb-entry-list, [data-rb-type="certifications"] .rb-entry-list, [data-rb-type="interests"] .rb-entry-list, [data-rb-type="achievements"] .rb-entry-list),
+.resume-page.rb-listcols-4 .rb-col-mid :is([data-rb-type="skills"] ul.list-disc, [data-rb-type="languages"] .rb-entry-list, [data-rb-type="certifications"] .rb-entry-list, [data-rb-type="interests"] .rb-entry-list, [data-rb-type="achievements"] .rb-entry-list) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.resume-page.rb-listcols .rb-col-narrow :is([data-rb-type="skills"] ul.list-disc, [data-rb-type="languages"] .rb-entry-list, [data-rb-type="certifications"] .rb-entry-list, [data-rb-type="interests"] .rb-entry-list, [data-rb-type="achievements"] .rb-entry-list) {
+  grid-template-columns: minmax(0, 1fr);
+}

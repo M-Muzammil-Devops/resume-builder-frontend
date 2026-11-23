@@ -3,11 +3,60 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useEffect, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Fingerprint, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react";
+import { AuroraBrand, AuroraError, AuroraInput, AuroraPassword, AuroraSubmit } from "@/components/auth/AuroraFields";
 import { ApiError, apiFetch, getRefreshToken, getToken, refreshAdminCookie, setSession } from "@/lib/api";
 import { safeAdminNext } from "@/lib/adminSession";
+import s from "@/components/auth/AuthSlider.module.css";
+import a from "@/components/auth/AdminLogin.module.css";
 
 type LoginResponse = { token: string; refreshToken?: string; user: { role: string } };
+
+/** 3D-looking shield (pure SVG, CSP safe). `idp` keeps gradient ids unique per instance. */
+function ShieldArt({ idp, className }: { idp: string; className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 210 250" aria-hidden focusable="false">
+      <defs>
+        <linearGradient id={`${idp}-back`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#312e81" />
+          <stop offset="1" stopColor="#1e1b4b" />
+        </linearGradient>
+        <linearGradient id={`${idp}-face`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#c4b5fd" />
+          <stop offset="0.45" stopColor="#7c3aed" />
+          <stop offset="1" stopColor="#3730a3" />
+        </linearGradient>
+        <linearGradient id={`${idp}-rim`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.5" stopColor="#a5f3fc" />
+          <stop offset="1" stopColor="#818cf8" />
+        </linearGradient>
+        <linearGradient id={`${idp}-lock`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="1" stopColor="#dbeafe" />
+        </linearGradient>
+        <linearGradient id={`${idp}-gloss`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* depth layer */}
+      <path d="M113 14 L196 44 V118 C196 176 160 216 113 238 C66 216 30 176 30 118 V44 Z" fill={`url(#${idp}-back)`} />
+      {/* rim */}
+      <path d="M105 8 L188 38 V112 C188 170 152 210 105 232 C58 210 22 170 22 112 V38 Z" fill={`url(#${idp}-rim)`} />
+      {/* face */}
+      <path d="M105 20 L177 46 V112 C177 162 146 197 105 218 C64 197 33 162 33 112 V46 Z" fill={`url(#${idp}-face)`} />
+      {/* gloss */}
+      <path d="M105 20 L177 46 V92 C150 104 70 112 33 98 V46 Z" fill={`url(#${idp}-gloss)`} />
+      {/* lock */}
+      <path d="M85 112 V96 a20 20 0 0 1 40 0 V112" fill="none" stroke={`url(#${idp}-lock)`} strokeWidth="11" strokeLinecap="round" />
+      <rect x="70" y="108" width="70" height="56" rx="14" fill={`url(#${idp}-lock)`} />
+      <rect x="70" y="150" width="70" height="14" rx="7" fill="#c7d2fe" opacity="0.6" />
+      <circle cx="105" cy="131" r="8" fill="#4338ca" />
+      <rect x="101.5" y="134" width="7" height="15" rx="3.5" fill="#4338ca" />
+    </svg>
+  );
+}
 
 function AdminLoginForm() {
   const search = useSearchParams();
@@ -77,61 +126,119 @@ function AdminLoginForm() {
   }
 
   return (
-    <main className="admin-root flex min-h-screen items-center justify-center px-4">
-      <form onSubmit={onSubmit} className="admin-panel w-full max-w-md p-6" noValidate={false}>
-        <div className="flex items-center gap-2 text-cyan-300">
-          <ShieldCheck size={18} />
-          <span className="text-xs font-semibold uppercase tracking-wide">Admin console</span>
+    <main className={s.page}>
+      {/* Background 3D shapes (decorative). */}
+      <div className={s.scene} aria-hidden>
+        <div className={`${s.sh} ${s.big} ${s.sph} ${s.bgSphereA} ${s.float1}`} />
+        <div className={`${s.sh} ${s.big} ${s.bgTorus} ${s.float2}`}>
+          <div className={s.torw}>
+            <div className={s.tor} />
+          </div>
         </div>
-        <h1 className="mt-2 text-xl font-bold text-white">Admin sign-in</h1>
-        <p className="mt-1 text-sm text-slate-200">Only admin accounts can sign in here.</p>
-        {error && (
-          <p role="alert" className="mt-3 text-sm text-rose-300">
-            {error}
-            {notAdmin && (
-              <>
-                {" "}
-                <Link href="/login" className="font-semibold text-cyan-300 underline">
-                  Go to the user sign-in
-                </Link>
-              </>
-            )}
-          </p>
-        )}
-        <label htmlFor="admin-email" className="mt-5 block text-xs text-slate-300">
-          Email
-        </label>
-        <input
-          id="admin-email"
-          className="admin-input mt-1 w-full"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          autoComplete="username"
-          required
-        />
-        <label htmlFor="admin-password" className="mt-3 block text-xs text-slate-300">
-          Password
-        </label>
-        <input
-          id="admin-password"
-          className="admin-input mt-1 w-full"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          type="password"
-          autoComplete="current-password"
-          required
-        />
-        <button type="submit" disabled={busy} className="admin-btn mt-5 w-full">
-          {busy ? "Signing in…" : "Sign in"}
-        </button>
-        <p className="mt-4 text-center text-xs text-slate-200">
-          Not an admin?{" "}
-          <Link href="/login" className="text-cyan-300 underline">
-            User sign-in
-          </Link>
-        </p>
-      </form>
+        <div className={`${s.sh} ${s.big} ${s.sph} ${s.bgSphereB} ${s.float3}`} />
+        <div className={`${s.sh} ${s.big} ${s.bgCube} ${s.float2}`}>
+          <div className={s.cube}>
+            <i />
+            <i />
+            <i />
+          </div>
+        </div>
+      </div>
+
+      <div className={s.stage}>
+        <div className={s.card}>
+          <div className={s.shine} aria-hidden />
+
+          <section className={`${s.pane} ${s.login}`} aria-labelledby="admin-title">
+            <div className={`${s.mav} ${a.mavShield}`} aria-hidden>
+              <ShieldArt idp="adm-m" />
+            </div>
+            <AuroraBrand />
+            <span className={a.eyebrow}>
+              <ShieldCheck aria-hidden />
+              Admin console
+            </span>
+            <h1 id="admin-title" className={s.title}>
+              Admin sign-in
+            </h1>
+            <p className={s.sub}>Only admin accounts can sign in here.</p>
+
+            <form onSubmit={onSubmit} className={s.form} noValidate={false}>
+              <AuroraError message={error}>
+                {notAdmin && (
+                  <>
+                    {" "}
+                    <Link href="/login" className={s.errorLink}>
+                      Go to the user sign-in
+                    </Link>
+                  </>
+                )}
+              </AuroraError>
+              <AuroraInput
+                id="admin-email"
+                label="Email"
+                icon="mail"
+                value={email}
+                onChange={setEmail}
+                type="email"
+                autoComplete="username"
+                placeholder="admin@example.com"
+                required
+              />
+              <AuroraPassword
+                id="admin-password"
+                value={password}
+                onChange={setPassword}
+                autoComplete="current-password"
+                required
+              />
+              <AuroraSubmit loading={busy} idleLabel="Sign in" loadingLabel="Signing in…" />
+            </form>
+
+            <p className={s.foot}>
+              Not an admin?{" "}
+              <Link href="/login" className={s.link}>
+                User sign-in
+              </Link>
+            </p>
+          </section>
+
+          <aside className={`${s.ov} ${a.ovStatic}`} aria-label="Admin console">
+            <div className={s.ovbg} aria-hidden>
+              <div className={`${s.sh} ${s.sph} ${s.ovSphereA} ${s.float1}`} />
+              <div className={`${s.sh} ${s.sph} ${s.ovSphereB} ${s.float3}`} />
+              <div className={`${s.sh} ${s.ovTorus} ${s.float2}`}>
+                <div className={s.torw}>
+                  <div className={s.tor} />
+                </div>
+              </div>
+            </div>
+            <div className={`${s.copy} ${s.c1}`}>
+              <h2 className={s.ovTitle}>Admin Console</h2>
+              <p className={s.ovText}>Restricted access. Every sign-in is checked and logged to keep ResumeBuilder safe.</p>
+              <Link href="/login" className={s.ghost}>
+                User sign-in
+              </Link>
+              <div className={a.shieldWrap} aria-hidden>
+                <div className={s.pod} />
+                <div className={a.glow} />
+                <div className={`${a.shield} ${a.shieldFloat}`}>
+                  <ShieldArt idp="adm-d" />
+                </div>
+                <span className={`${a.chip} ${a.chipA} ${s.float2}`}>
+                  <LockKeyhole aria-hidden /> Encrypted session
+                </span>
+                <span className={`${a.chip} ${a.chipB} ${s.float3}`}>
+                  <KeyRound aria-hidden /> Admins only
+                </span>
+                <span className={`${a.chip} ${a.chipC} ${s.float1}`}>
+                  <Fingerprint aria-hidden /> Activity logged
+                </span>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
     </main>
   );
 }

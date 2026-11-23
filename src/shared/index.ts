@@ -2,4 +2,7 @@ export * from "./types";
 export * from "./defaults";
 export * from "./templates";
 export * from "./templateStarter";
+export * from "./templateContent";
+export * from "./layout";
+export * from "./photoSlot";
 export * from "./sampleMarks";
