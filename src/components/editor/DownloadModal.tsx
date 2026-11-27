@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { flattenResumeText } from "@/lib/atsEngine";
 import { scrubPlaceholders, withProvenance } from "@/lib/placeholders";
@@ -8,6 +8,8 @@ import { resumeToDocxBlob } from "@/lib/resumeDocx";
 import { getApiUrl, getToken } from "@/lib/api";
 import { useEditorStore } from "@/store/editorStore";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
+import { countResumeSections, sectionLimitBlocked } from "@/shared/sectionLimit";
+import { UpgradeSectionsDialog, sectionLimitFromBody } from "@/components/plan/UpgradeSectionsDialog";
 
 function sanitizeFileName(raw: string) {
   return raw.replace(/[^\w\s-]/g, "").replace(/\s+/g, " ").trim() || "Resume";
@@ -22,10 +24,34 @@ export function DownloadModal({ documentId }: { documentId: string }) {
   );
   const [busy, setBusy] = useState<"pdf" | "txt" | "docx" | "email" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Free plan: max sections for PDF download (0 = unlimited); null until loaded. */
+  const [sectionLimit, setSectionLimit] = useState<number | null>(null);
+  const [upgrade, setUpgrade] = useState<{ limit: number; count: number } | null>(null);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    let alive = true;
+    fetch(`${getApiUrl()}/user/pdf-rules`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { sectionLimit?: unknown } | null) => {
+        if (alive && d && typeof d.sectionLimit === "number") setSectionLimit(d.sectionLimit);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function downloadPdf() {
     if (!document) return;
     const name = sanitizeFileName(fileName);
+    // Free-plan section limit: Header / Personal Info excluded, filled and empty sections count.
+    const count = countResumeSections(document.content);
+    if (sectionLimit !== null && sectionLimitBlocked(count, sectionLimit)) {
+      setUpgrade({ limit: sectionLimit, count });
+      return;
+    }
     setBusy("pdf");
     setError(null);
     try {
@@ -52,6 +78,12 @@ export function DownloadModal({ documentId }: { documentId: string }) {
       const type = res.headers.get("content-type") || "";
       if (!res.ok) {
         const data = await res.json().catch(() => null);
+        const blocked = res.status === 402 ? sectionLimitFromBody(data) : null;
+        if (blocked) {
+          setSectionLimit(blocked.limit);
+          setUpgrade(blocked);
+          return;
+        }
         throw new Error(
           (data && (data.message || data.error)) || `Export failed (${res.status})`
         );
@@ -128,6 +160,10 @@ export function DownloadModal({ documentId }: { documentId: string }) {
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
     setBusy(null);
+  }
+
+  if (upgrade) {
+    return <UpgradeSectionsDialog limit={upgrade.limit} count={upgrade.count} onClose={() => setModal(null)} onEditSections={() => setModal(null)} />;
   }
 
   return (

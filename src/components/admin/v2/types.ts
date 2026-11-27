@@ -150,7 +150,16 @@ export type AudioJobs = {
 export type AdminSettings = {
   siteName: string;
   supportEmail: string;
-  freeLimits: { pdfExportsPerMonth: number; audioMinutesPerMonth: number; maxResumes: number; watermark: boolean };
+  freeLimits: {
+    pdfExportsPerMonth: number;
+    audioMinutesPerMonth: number;
+    maxResumes: number;
+    watermark: boolean;
+    /** Free plan: PDF download blocked above this many sections (Header excluded; 0 = unlimited). */
+    maxSectionsForFreePdf: number;
+    /** Free plan: section limit for PDF download on/off. */
+    enforceFreeSectionLimit: boolean;
+  };
   registrationOpen: boolean;
   maintenance: { enabled: boolean; message: string };
 };

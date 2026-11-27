@@ -1,0 +1,111 @@
+/* "Upgrade your plan" popup (Free-plan section limit). Night by default, Day via html[data-theme="light"]. */
+.back {
+  --u-bg: #10163a;
+  --u-line: rgba(255, 255, 255, 0.12);
+  --u-ink: #eef2ff;
+  --u-ink2: #c3cbe6;
+  --u-panel: rgba(255, 255, 255, 0.06);
+  --u-track: rgba(255, 255, 255, 0.1);
+  position: fixed;
+  inset: 0;
+  z-index: 9050; /* above the cookie banner (9000), below cookie settings (9100) */
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(3, 6, 20, 0.62);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+:global(html[data-theme="light"]) .back {
+  --u-bg: #ffffff;
+  --u-line: #dfe5ef;
+  --u-ink: #0f172a;
+  --u-ink2: #334155;
+  --u-panel: #f5f7fb;
+  --u-track: #e5e9f2;
+  background: rgba(15, 23, 42, 0.45);
+}
+.box {
+  position: relative;
+  width: min(460px, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 26px 24px 22px;
+  border-radius: 20px;
+  background: var(--u-bg);
+  border: 1px solid var(--u-line);
+  color: var(--u-ink);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  font-family: var(--font-raleway), var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  text-align: left;
+  animation: pop 0.18s ease-out;
+}
+:global(html[data-theme="light"]) .box { box-shadow: 0 24px 60px rgba(30, 41, 90, 0.18); }
+@keyframes pop {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .box { animation: none; } }
+.x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  color: var(--u-ink2);
+  cursor: pointer;
+}
+.x:hover { background: var(--u-panel); }
+.badge {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(135deg, #f59e0b 0%, #f43f5e 55%, #8b5cf6 100%);
+  box-shadow: 0 10px 24px rgba(244, 63, 94, 0.3);
+  margin-bottom: 14px;
+}
+.title {
+  margin: 0 0 8px;
+  font: 700 20px/1.25 var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  color: var(--u-ink);
+}
+.text { margin: 0; font-size: 14px; line-height: 1.55; color: var(--u-ink2); }
+.text b { color: var(--u-ink); }
+.meter { height: 8px; margin: 16px 0 4px; border-radius: 99px; background: linear-gradient(90deg, #f59e0b, #f43f5e); overflow: hidden; }
+.meterBar { height: 100%; background: linear-gradient(90deg, #38bdf8, #3b82f6); border-radius: 99px; }
+.list { list-style: none; margin: 14px 0 0; padding: 12px 14px; display: grid; gap: 9px; border-radius: 13px; background: var(--u-panel); border: 1px solid var(--u-line); }
+.list li { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: var(--u-ink2); }
+.list li svg { flex: none; margin-top: 2px; color: #8b5cf6; }
+.acts { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 11px;
+  border: 1px solid var(--u-line);
+  background: transparent;
+  color: var(--u-ink);
+  font: 600 13.5px var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.btn:hover { background: var(--u-panel); }
+.btn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.primary { border: 0; color: #fff !important; background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 45%, #8b5cf6 100%); box-shadow: 0 6px 18px rgba(59, 130, 246, 0.35); }
+.primary:hover { background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 45%, #8b5cf6 100%); transform: translateY(-1px); box-shadow: 0 10px 24px rgba(59, 130, 246, 0.45); }
+@media (max-width: 480px) {
+  .box { padding: 22px 18px 18px; border-radius: 18px; }
+  .acts { flex-direction: column-reverse; }
+  .acts .btn { width: 100%; }
+}

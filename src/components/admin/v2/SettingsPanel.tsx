@@ -62,7 +62,7 @@ export function SettingsPanel({ access }: { access: AdminAccess | null }) {
     if (form.siteName.trim().length > 60) return "Site name can be up to 60 characters.";
     if (form.supportEmail.trim() && !EMAIL_RE.test(form.supportEmail.trim())) return "Enter a valid support email (or leave it empty).";
     const lim = form.freeLimits;
-    for (const [v, name, max] of [[lim.pdfExportsPerMonth, "PDF export limit", 100000], [lim.audioMinutesPerMonth, "Audio minutes limit", 100000], [lim.maxResumes, "Max resumes", 1000]] as const) {
+    for (const [v, name, max] of [[lim.pdfExportsPerMonth, "PDF export limit", 100000], [lim.audioMinutesPerMonth, "Audio minutes limit", 100000], [lim.maxResumes, "Max resumes", 1000], [lim.maxSectionsForFreePdf, "Max sections for PDF download", 100]] as const) {
       if (!Number.isFinite(v) || v < 0 || v > max) return `${name} must be a whole number from 0 to ${max.toLocaleString("en-US")}.`;
     }
     if (form.maintenance.message.length > 300) return "Maintenance message can be up to 300 characters.";
@@ -157,6 +157,25 @@ export function SettingsPanel({ access }: { access: AdminAccess | null }) {
                 hint="Noise Remover minutes for Free accounts." onChange={(n) => setLimit("audioMinutesPerMonth", n)} />
               <NumField id="v2-set-resumes" label="Max resumes" value={form.freeLimits.maxResumes} max={1000} disabled={off}
                 hint="Resumes a Free account can keep." onChange={(n) => setLimit("maxResumes", n)} />
+              <div className={s.fl}>
+                <span className={s.flabel}>Section limit for PDF download</span>
+                <div className={s.toggleRow} style={{ borderTop: 0, padding: "6px 0 0" }}>
+                  <div>
+                    <small>
+                      {form.freeLimits.enforceFreeSectionLimit
+                        ? form.freeLimits.maxSectionsForFreePdf > 0
+                          ? `On: Free users with more than ${form.freeLimits.maxSectionsForFreePdf} section${form.freeLimits.maxSectionsForFreePdf === 1 ? "" : "s"} see “Upgrade your plan” instead of the PDF.`
+                          : "On, but 0 = unlimited: no section limit."
+                        : "Off: Free users can download any number of sections."}
+                    </small>
+                  </div>
+                  <Switch id="v2-set-seclim" label="Section limit for PDF download" on={form.freeLimits.enforceFreeSectionLimit} disabled={off} onChange={(v) => setLimit("enforceFreeSectionLimit", v)} />
+                </div>
+              </div>
+              <NumField id="v2-set-sections" label="Free plan max sections for PDF download" value={form.freeLimits.maxSectionsForFreePdf} max={100}
+                disabled={off || !form.freeLimits.enforceFreeSectionLimit}
+                hint="Counts every section from Summary down, filled or empty. Header / Personal Info is not counted. 0 = unlimited. Pro and Admin are never limited."
+                onChange={(n) => setLimit("maxSectionsForFreePdf", n)} />
               <div className={s.fl}>
                 <span className={s.flabel}>Watermark on Free exports</span>
                 <div className={s.toggleRow} style={{ borderTop: 0, padding: "6px 0 0" }}>

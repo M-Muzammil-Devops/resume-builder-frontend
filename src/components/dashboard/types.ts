@@ -16,6 +16,8 @@ export type DashResume = {
   score: number;
   status: "ready" | "draft";
   missing: string[];
+  /** Sections for the Free PDF section limit (Header excluded; filled and empty count). */
+  sectionCount?: number;
 };
 
 export type DashDownload = {
@@ -39,6 +41,8 @@ export type DashUsage = {
   audioMinutesLimit: number;
   resumesUsed: number;
   resumesLimit: number;
+  /** Free plan: max sections for PDF download; 0 = unlimited (Pro, Admin, or switched off). */
+  pdfSectionLimit?: number;
 };
 
 export type DashSummary = {

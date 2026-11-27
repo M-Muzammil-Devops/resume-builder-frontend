@@ -16,6 +16,8 @@ import { ResumeGrid } from "@/components/dashboard/ResumeGrid";
 import { CoverLettersCard, DownloadsCard, ToolsCard } from "@/components/dashboard/BottomRow";
 import { DeleteDialog, PlansDialog, RenameDialog } from "@/components/dashboard/Modals";
 import { MobileTabBar } from "@/components/dashboard/MobileTabBar";
+import { UpgradeSectionsDialog, sectionLimitFromBody } from "@/components/plan/UpgradeSectionsDialog";
+import { sectionLimitBlocked } from "@/shared/sectionLimit";
 import { cx, fileSafe, firstName, greetingForHour, usagePct } from "@/components/dashboard/format";
 import type { CoverLetterRow, DashDownload, DashResume, DashSummary } from "@/components/dashboard/types";
 import s from "@/components/dashboard/Dashboard.module.css";
@@ -47,6 +49,7 @@ export default function DashboardPage() {
   const [renaming, setRenaming] = useState<DashResume | null>(null);
   const [deleting, setDeleting] = useState<DashResume | null>(null);
   const [plansOpen, setPlansOpen] = useState(false);
+  const [upgrade, setUpgrade] = useState<{ resumeId: string; limit: number; count: number } | null>(null);
   const [active, setActive] = useState<NavKey>("dashboard");
   const [query, setQuery] = useState("");
   const [greeting, setGreeting] = useState("Hello");
@@ -135,6 +138,14 @@ export default function DashboardPage() {
   }
 
   async function downloadPdf(resumeId: string, title: string) {
+    // Free-plan section limit (Header / Personal Info excluded; filled and empty sections count).
+    const card = data?.resumes.find((x) => x.id === resumeId);
+    const limit = data?.usage.pdfSectionLimit ?? 0;
+    if (card && typeof card.sectionCount === "number" && sectionLimitBlocked(card.sectionCount, limit)) {
+      setNotice(null);
+      setUpgrade({ resumeId, limit, count: card.sectionCount });
+      return;
+    }
     setPdfId(resumeId);
     setNotice(null);
     try {
@@ -169,6 +180,11 @@ export default function DashboardPage() {
       );
       await load(true);
     } catch (err) {
+      const blocked = err instanceof ApiError && err.status === 402 ? sectionLimitFromBody(err.body) : null;
+      if (blocked) {
+        setUpgrade({ resumeId, ...blocked });
+        return;
+      }
       setNotice({ tone: "err", text: friendlyError(err, "Could not create the PDF. Please try again.") });
     } finally {
       setPdfId(null);
@@ -375,6 +391,18 @@ export default function DashboardPage() {
       {renaming && <RenameDialog initial={renaming.title} busy={busyId === renaming.id} onSave={(t) => void saveRename(t)} onClose={() => setRenaming(null)} />}
       {deleting && <DeleteDialog title={deleting.title} busy={busyId === deleting.id} onConfirm={() => void confirmDelete()} onClose={() => setDeleting(null)} />}
       {plansOpen && usage && <PlansDialog usage={usage} onClose={() => setPlansOpen(false)} />}
+      {upgrade && (
+        <UpgradeSectionsDialog
+          limit={upgrade.limit}
+          count={upgrade.count}
+          onClose={() => setUpgrade(null)}
+          onEditSections={() => {
+            const id = upgrade.resumeId;
+            setUpgrade(null);
+            router.push(`/user/editor/${id}`);
+          }}
+        />
+      )}
     </div>
   );
 }

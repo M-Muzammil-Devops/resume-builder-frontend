@@ -6,3 +6,4 @@ export * from "./templateContent";
 export * from "./layout";
 export * from "./photoSlot";
 export * from "./sampleMarks";
+export * from "./sectionLimit";
