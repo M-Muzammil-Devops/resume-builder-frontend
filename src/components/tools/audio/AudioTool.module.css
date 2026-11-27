@@ -890,3 +890,53 @@
   .embed .ringP { width: 160px; height: 160px; }
   .embed .ringP b { font-size: 34px; }
 }
+
+/* ---------- Public showcase page (/tools/audio-noise-remover): example, features, FAQ, CTA ----------
+   The interactive upload tool lives only in the User Dashboard (/user/noise-remover). */
+.heroCtas { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 26px; }
+.show { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 30px; padding: 30px; align-items: center; }
+.showTxt, .showDemo { min-width: 0; display: grid; gap: 4px; align-content: start; }
+.showLead { margin: 10px 0 0; color: var(--mut); font-size: 15px; line-height: 1.6; font-weight: 500; }
+.showNote { display: flex; align-items: center; gap: 8px; margin: 12px 2px 0; color: var(--mut); font-size: 13px; font-weight: 600; }
+.secHead { text-align: center; margin: 10px auto 22px; max-width: 720px; }
+.secHead h2 { margin: 8px 0 0; font-size: 34px; line-height: 1.15; font-weight: 700; letter-spacing: -0.02em; }
+.feats { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.feat { padding: 22px; min-width: 0; }
+.feat h3 { margin: 14px 0 6px; font-size: 17px; }
+.feat p { margin: 0; color: var(--mut); font-size: 14px; line-height: 1.6; }
+.featIco { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: linear-gradient(160deg, #38bdf8, #2563eb); box-shadow: 0 10px 24px var(--glow); }
+.faq { display: grid; gap: 12px; max-width: 860px; margin: 0 auto; }
+.faqItem { padding: 0; border-radius: 18px; }
+.faqItem summary { cursor: pointer; list-style: none; padding: 18px 22px; font-family: var(--head); font-weight: 700; font-size: 15px; display: flex; justify-content: space-between; gap: 14px; }
+.faqItem summary::-webkit-details-marker { display: none; }
+.faqItem summary::after { content: "+"; flex: none; font-size: 20px; line-height: 1; color: #7dd3fc; }
+.faqItem[open] summary::after { content: "−"; }
+.faqItem p { margin: 0; padding: 0 22px 18px; color: var(--mut); font-size: 14px; line-height: 1.65; }
+.ctaBand { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 28px 30px; margin-top: 34px; flex-wrap: wrap; }
+.ctaBand h2 { margin: 0 0 6px; font-size: 24px; }
+.ctaBand p { margin: 0; color: var(--mut); font-size: 15px; }
+.heroCtas .btn, .heroCtas .ghost, .ctaBand .btn, .show .btn { text-align: center; }
+@media (max-width: 1100px) {
+  .feats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 899px) {
+  .heroCtas { justify-content: center; }
+  .show { grid-template-columns: minmax(0, 1fr); padding: 24px; }
+}
+@media (max-width: 767px) {
+  .heroCtas { flex-direction: column; align-items: stretch; }
+  .heroCtas .btn, .heroCtas .ghost, .show .btn, .ctaBand .btn { padding: 15px 20px; }
+  .secHead h2 { font-size: 26px; }
+  .feats { grid-template-columns: minmax(0, 1fr); }
+  .show { padding: 18px; gap: 20px; }
+  .ctaBand { padding: 22px; flex-direction: column; align-items: stretch; text-align: center; }
+  .faqItem summary { padding: 16px 18px; }
+  .faqItem p { padding: 0 18px 16px; }
+}
+:global(html[data-theme="light"]) .faqItem summary::after { color: #1d4ed8; }
+:global(html[data-theme="light"]) .showLead,
+:global(html[data-theme="light"]) .showNote,
+:global(html[data-theme="light"]) .feat p,
+:global(html[data-theme="light"]) .faqItem p,
+:global(html[data-theme="light"]) .ctaBand p { color: #4b5679; }
+:global(html[data-theme="light"]) .featIco { box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); }

@@ -192,3 +192,58 @@
 @media (prefers-reduced-motion: reduce) {
   .skelCol { animation: none; }
 }
+
+/* ---------- Templates (/user/templates): template gallery only ---------- */
+.tgBar { display: flex; flex-direction: column; gap: 14px; }
+.tgBar .inputIco { flex: none; width: 100%; max-width: 420px; }
+.tgFilters { display: flex; flex-wrap: wrap; gap: 12px 22px; min-width: 0; }
+.tgFilter { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
+.tgFilter > span { font: 700 11px var(--head); letter-spacing: 0.08em; text-transform: uppercase; color: var(--mute); flex: none; }
+.tgSeg { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.tgGrid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px; min-width: 0; }
+.tgCard {
+  display: flex; flex-direction: column; min-width: 0; border-radius: 18px; overflow: hidden;
+  background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.tgCard:hover { transform: translateY(-2px); border-color: rgba(96, 165, 250, 0.55); }
+.tgThumb { position: relative; display: block; width: 100%; padding: 12px 12px 0; border: 0; background: none; cursor: zoom-in; }
+.tgThumb img {
+  display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 3 / 4; object-fit: cover; object-position: top;
+  border-radius: 11px; background: #fff; border: 1px solid var(--line);
+}
+.tgEye {
+  position: absolute; right: 20px; top: 20px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px;
+  font: 700 11px var(--head); color: #fff; background: rgba(10, 14, 40, 0.72); opacity: 0; transition: opacity 0.15s ease;
+}
+.tgThumb:hover .tgEye, .tgThumb:focus-visible .tgEye { opacity: 1; }
+.tgBody { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 14px; min-width: 0; flex: 1; }
+.tgName { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; }
+.tgName b { font: 700 13.5px var(--head); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; max-width: 100%; }
+.tgName > span { flex: none; }
+.tgBody small { font-size: 12px; color: var(--mute); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 35px; }
+.tgUse { margin-top: auto; width: 100%; justify-content: center; height: 34px; }
+.tgBlank { border-style: dashed; border-color: rgba(96, 165, 250, 0.55); }
+.tgBlankBtn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px 16px; min-height: 280px;
+  border: 0; background: none; color: var(--ink); cursor: pointer; text-align: center;
+}
+.tgBlankBtn:disabled { opacity: 0.6; cursor: progress; }
+.tgBlankBtn b { font: 700 14px var(--head); }
+.tgBlankBtn small { font-size: 12px; color: var(--mute); }
+.tgBlankIco { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: var(--grad); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35); }
+.tgModal { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
+.tgModalHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.tgModalHead h3 { margin: 0 !important; }
+.tgModalImg img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+.tgModal p { margin-top: 12px !important; }
+@media (max-width: 640px) {
+  .tgGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tgFilter { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .tgThumb { padding: 8px 8px 0; }
+  .tgBody { padding: 10px; }
+  .tgBlankBtn { min-height: 200px; }
+  .tgEye { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tgCard, .tgEye { transition: none; }
+}

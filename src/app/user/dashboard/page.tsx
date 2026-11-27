@@ -12,14 +12,13 @@ import { buildAlerts } from "@/components/dashboard/alerts";
 import { createStarterResume, friendlyError } from "@/components/dashboard/actions";
 import { WelcomeCard } from "@/components/dashboard/WelcomeCard";
 import { UsageCard } from "@/components/dashboard/UsageCard";
-import { TemplateStrip } from "@/components/dashboard/TemplateStrip";
 import { ResumeGrid } from "@/components/dashboard/ResumeGrid";
-import { CoverLettersCard, DownloadsCard, ToolsCard } from "@/components/dashboard/BottomRow";
+import { CoverLettersCard, ToolsCard } from "@/components/dashboard/BottomRow";
 import { DeleteDialog, PlansDialog, RenameDialog } from "@/components/dashboard/Modals";
 import { UpgradeSectionsDialog, sectionLimitFromBody } from "@/components/plan/UpgradeSectionsDialog";
 import { sectionLimitBlocked } from "@/shared/sectionLimit";
 import { cx, fileSafe, firstName, greetingForHour } from "@/components/dashboard/format";
-import type { CoverLetterRow, DashDownload, DashResume, DashSummary } from "@/components/dashboard/types";
+import type { CoverLetterRow, DashResume, DashSummary } from "@/components/dashboard/types";
 import s from "@/components/dashboard/Dashboard.module.css";
 
 type Notice = { tone: "err" | "info" | "ok"; text: string } | null;
@@ -143,19 +142,8 @@ export default function DashboardPage() {
       a.click();
       a.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      // Show the new download and usage count at once, then confirm with the server numbers.
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              usage: { ...prev.usage, pdfExportsUsed: prev.usage.pdfExportsUsed + 1 },
-              downloads: [
-                { id: `local-${Date.now()}`, kind: "resume" as const, resumeId, title, format: "pdf", pageSize: null, createdAt: new Date().toISOString() },
-                ...prev.downloads,
-              ].slice(0, 6),
-            }
-          : prev
-      );
+      // Show the new usage count at once, then confirm with the server numbers.
+      setData((prev) => (prev ? { ...prev, usage: { ...prev.usage, pdfExportsUsed: prev.usage.pdfExportsUsed + 1 } } : prev));
       await load(true);
     } catch (err) {
       const blocked = err instanceof ApiError && err.status === 402 ? sectionLimitFromBody(err.body) : null;
@@ -258,13 +246,18 @@ export default function DashboardPage() {
   useEffect(() => {
     if (loading) return;
     const key = window.location.hash.replace(/^#/, "");
+    // Old bookmarks: templates now have their own page, and the Downloads list was removed.
+    if (key === "templates") {
+      router.replace("/user/templates");
+      return;
+    }
     if (!key || !isSectionKey(key)) return;
     const frame = requestAnimationFrame(() => {
       setActive(key);
       document.getElementById(key)?.scrollIntoView({ block: "start" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [loading]);
+  }, [loading, router]);
 
   const latest = resumes[0];
   const counts = { resumes: resumes.length, templates: LANDING_TEMPLATES.length, letters: letters.length };
@@ -349,8 +342,6 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <TemplateStrip templates={LANDING_TEMPLATES} busy={busy} onBlank={() => void createResume()} onPick={(t) => void pickTemplate(t)} />
-
             <ResumeGrid
               resumes={resumes}
               loading={loading}
@@ -362,16 +353,11 @@ export default function DashboardPage() {
               onDuplicate={(r) => void duplicateResume(r)}
               onRename={(r) => setRenaming(r)}
               onDelete={(r) => setDeleting(r)}
-              onCreate={() => goSection("templates")}
+              onCreate={() => router.push("/user/templates")}
             />
 
-            <div className={cx(s.row, s.r3)}>
+            <div className={cx(s.row, s.r2b)}>
               <ToolsCard />
-              <DownloadsCard
-                downloads={data?.downloads ?? []}
-                pdfId={pdfId}
-                onDownload={(d: DashDownload) => d.resumeId && void downloadPdf(d.resumeId, d.title)}
-              />
               <CoverLettersCard letters={letters} busy={busy} onNew={() => void newLetter()} />
             </div>
           </>

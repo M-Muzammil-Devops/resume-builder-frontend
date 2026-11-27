@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { AudioLines, Download, FileText, FileType2, Mail, Plus, Sparkles, Briefcase } from "lucide-react";
-import type { CoverLetterRow, DashDownload } from "./types";
+import { AudioLines, FileType2, Mail, Plus, Sparkles, Briefcase } from "lucide-react";
+import type { CoverLetterRow } from "./types";
 import { cx, timeAgo } from "./format";
 import s from "./Dashboard.module.css";
 
@@ -38,64 +38,6 @@ export function ToolsCard() {
           );
         })}
       </div>
-    </section>
-  );
-}
-
-export function DownloadsCard({ downloads, pdfId, onDownload }: { downloads: DashDownload[]; pdfId: string | null; onDownload: (d: DashDownload) => void }) {
-  return (
-    <section id="downloads" className={cx(s.card, s.pad, s.sec)} style={{ marginBottom: 0 }} aria-labelledby="dash-downloads">
-      <div className={s.ttl}>
-        <h3 id="dash-downloads">Recent downloads</h3>
-        {downloads.length > 0 && <span className={cx(s.pill, s.gr)}>{downloads.length} latest</span>}
-      </div>
-      {downloads.length === 0 ? (
-        <div className={s.empty}>
-          <div className={s.art} aria-hidden="true">
-            <Download size={34} />
-          </div>
-          <h4>No downloads yet</h4>
-          <p>Your PDF exports and cleaned audio files will show up here.</p>
-        </div>
-      ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-          {downloads.map((d) => {
-            const audio = d.kind === "audio";
-            const name = audio ? d.title : `${d.title.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_") || "Resume"}.${d.format}`;
-            const sub = audio
-              ? `Noise Remover${d.durationSec ? ` · ${Math.max(1, Math.round(d.durationSec / 60))} min` : ""} · ${timeAgo(d.createdAt)}`
-              : `${d.pageSize || d.format.toUpperCase()} · ${timeAgo(d.createdAt)}`;
-            return (
-              <li key={d.id} className={s.it}>
-                <span className={cx(s.fi, audio && s.fiAudio)} aria-hidden="true">
-                  {audio ? <AudioLines size={17} /> : <FileText size={17} />}
-                </span>
-                <span className={s.itTxt}>
-                  <b title={name}>{name}</b>
-                  <small>{sub}</small>
-                </span>
-                {audio ? (
-                  <Link href="/tools/audio-noise-remover" className={cx(s.btn, s.sm)} aria-label="Open Noise Remover">
-                    Open
-                  </Link>
-                ) : d.resumeId ? (
-                  <button
-                    type="button"
-                    className={cx(s.btn, s.sm, s.ic)}
-                    aria-label={`Download ${name} again`}
-                    disabled={pdfId === d.resumeId}
-                    onClick={() => onDownload(d)}
-                  >
-                    <Download size={14} aria-hidden="true" />
-                  </button>
-                ) : (
-                  <span className={cx(s.pill, s.gr)}>Deleted</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </section>
   );
 }
