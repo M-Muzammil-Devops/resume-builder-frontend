@@ -175,3 +175,13 @@
 :global(html[data-theme="light"]) .copy { color: #6b7499; }
 :global(html[data-theme="light"]) .foot nav a:hover,
 :global(html[data-theme="light"]) .foot nav a[aria-current="page"] { color: #1d3fa8; }
+
+/* html/body match this page's canvas in both themes (no light-grey --rb-bg strip on margins or overscroll). */
+:global(html):has(.root),
+:global(html):has(.root) :global(body) {
+  background: #04060f;
+}
+:global(html[data-theme="light"]):has(.root),
+:global(html[data-theme="light"]):has(.root) :global(body) {
+  background: #f6f8ff;
+}

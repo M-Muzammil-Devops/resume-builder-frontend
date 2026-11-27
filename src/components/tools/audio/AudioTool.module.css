@@ -14,6 +14,8 @@
   --head: var(--font-aurora-head), "Segoe UI", sans-serif;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   position: relative;
+  /* flow-root keeps the nav's top margin inside .root, so no html/body strip shows above the page. */
+  display: flow-root;
   min-height: 100vh;
   overflow-x: clip;
   color: var(--ink);
@@ -940,3 +942,13 @@
 :global(html[data-theme="light"]) .faqItem p,
 :global(html[data-theme="light"]) .ctaBand p { color: #4b5679; }
 :global(html[data-theme="light"]) .featIco { box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22); }
+
+/* html/body match this page's canvas in both themes (no light-grey --rb-bg strip on margins or overscroll). */
+:global(html):has(.root),
+:global(html):has(.root) :global(body) {
+  background: #04060f;
+}
+:global(html[data-theme="light"]):has(.root),
+:global(html[data-theme="light"]):has(.root) :global(body) {
+  background: #f6f8ff;
+}
