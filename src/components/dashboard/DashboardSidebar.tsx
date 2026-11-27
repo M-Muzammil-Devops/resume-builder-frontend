@@ -20,12 +20,12 @@ import { cx } from "./format";
 import s from "./Dashboard.module.css";
 
 /** In-page sections of /user/dashboard (the dashboard shows the user's resumes; templates have their own page). */
-export type SectionKey = "dashboard" | "resumes" | "cover-letters" | "plan";
+export type SectionKey = "dashboard" | "resumes" | "plan";
 /** Workspace pages that open inside the same User Dashboard shell. */
-export type RouteKey = "templates" | "jobs" | "tracker" | "auto-apply" | "noise-remover" | "pdf-tools" | "settings";
+export type RouteKey = "cover-letters" | "templates" | "jobs" | "tracker" | "auto-apply" | "noise-remover" | "pdf-tools" | "settings";
 export type NavKey = SectionKey | RouteKey;
 
-export const SECTION_KEYS: SectionKey[] = ["dashboard", "resumes", "cover-letters", "plan"];
+export const SECTION_KEYS: SectionKey[] = ["dashboard", "resumes", "plan"];
 export const isSectionKey = (k: string): k is SectionKey => (SECTION_KEYS as string[]).includes(k);
 
 export type NavItem = {
@@ -50,7 +50,7 @@ export function navGroups(counts: NavCounts): NavGroup[] {
       items: [
         { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         { key: "resumes", label: "Resumes", icon: FileText, badge: counts.resumes ? { text: String(counts.resumes), tone: "gr" } : undefined },
-        { key: "cover-letters", label: "Cover Letters", icon: Mail, badge: counts.letters ? { text: String(counts.letters), tone: "gr" } : undefined },
+        { key: "cover-letters", label: "Cover Letters", icon: Mail, href: "/user/cover-letters", badge: counts.letters ? { text: String(counts.letters), tone: "gr" } : undefined },
         { key: "templates", label: "Templates", icon: LayoutTemplate, href: "/user/templates", badge: { text: String(counts.templates), tone: "bl" } },
       ],
     },

@@ -207,19 +207,9 @@ export default function DashboardPage() {
     }
   }
 
-  // BUG-315: start a blank cover letter and open it.
-  async function newLetter() {
-    setBusy(true);
-    try {
-      const res = await apiFetch<{ coverLetter: CoverLetterRow }>("/cover-letters", {
-        method: "POST",
-        body: JSON.stringify({ title: "Untitled Cover Letter", body: "" }),
-      });
-      router.push(`/user/cover-letters/${res.coverLetter.id}`);
-    } catch (err) {
-      setNotice({ tone: "err", text: friendlyError(err, "Could not create a cover letter. Please try again.") });
-      setBusy(false);
-    }
+  // Batch 2: cover letters are generated from a finalized resume on the Cover Letters page.
+  function newLetter() {
+    router.push("/user/cover-letters?new=1");
   }
 
   function goSection(key: SectionKey) {
@@ -358,7 +348,7 @@ export default function DashboardPage() {
 
             <div className={cx(s.row, s.r2b)}>
               <ToolsCard />
-              <CoverLettersCard letters={letters} busy={busy} onNew={() => void newLetter()} />
+              <CoverLettersCard letters={letters} busy={busy} onNew={newLetter} />
             </div>
           </>
         )}

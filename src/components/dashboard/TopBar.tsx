@@ -19,6 +19,7 @@ type Hit =
 
 // Every entry opens inside the User Dashboard shell.
 const TOOLS = [
+  { id: "cover-letters", label: "Cover Letters", sub: "Generate, edit and download cover letters", href: "/user/cover-letters" },
   { id: "templates", label: "Templates", sub: "Browse every resume template", href: "/user/templates" },
   { id: "noise", label: "Noise Remover", sub: "Clean interview audio", href: "/user/noise-remover" },
   { id: "pdf", label: "PDF Tools", sub: "25+ tools · coming soon", href: "/user/pdf-tools" },

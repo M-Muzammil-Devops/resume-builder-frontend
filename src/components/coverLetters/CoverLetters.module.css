@@ -1,0 +1,44 @@
+/* Cover Letters workspace (/user/cover-letters). Tokens come from the User Dashboard shell (Day / Night). */
+.list { padding: 6px; }
+.ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.when { color: var(--mute); font-size: 11.5px; font-weight: 600; }
+.tagWarn { background: rgba(245, 158, 11, 0.14); color: var(--amber); border-color: rgba(245, 158, 11, 0.4); }
+.editor { min-width: 0; }
+.meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.meta a { text-decoration: none; }
+.save { margin-left: auto; }
+.stale, .notice {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-radius: 14px; min-width: 0;
+  font-size: 13px; font-weight: 600;
+}
+.stale { background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.4); color: var(--link); }
+.stale span { flex: 1 1 220px; min-width: 0; }
+.notice { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.38); color: var(--ink2); }
+.notice > svg { color: var(--amber); flex: none; }
+.notice > div { flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.notice b { color: var(--ink); font: 700 13.5px var(--head); }
+.notice span { color: var(--ink2); font-weight: 500; }
+.notice a { text-decoration: none; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); align-self: flex-start; max-width: 100%; }
+.segBtn {
+  height: 34px; padding: 0 14px; border-radius: 9px; border: 0; background: none; cursor: pointer;
+  font: 700 12.5px var(--head); color: var(--ink2);
+}
+.segBtn:hover { color: var(--ink); }
+.segOn { background: var(--grad); color: #fff; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+.acts { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; min-width: 0; padding-top: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
+.actsMain, .actsSub { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; min-width: 0; }
+.big { height: 44px; padding: 0 18px; font-size: 13.5px; }
+.empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 48px 22px; }
+.empty p { max-width: 460px; }
+.emptyIco {
+  width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; color: #a78bfa;
+  background: rgba(139, 92, 246, 0.16);
+}
+@container (max-width: 560px) {
+  .acts, .actsMain, .actsSub { width: 100%; }
+  .actsMain > button { flex: 1 1 100%; }
+  .actsSub > button { flex: 1 1 auto; }
+  .save { margin-left: 0; width: 100%; }
+}
+.lbl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-width: 0; }

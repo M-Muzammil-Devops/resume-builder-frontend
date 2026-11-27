@@ -55,6 +55,14 @@ export type DashSummary = {
   downloads: DashDownload[];
 };
 
-export type CoverLetterRow = { id: string; title: string; body?: string; updatedAt?: string };
+export type CoverLetterRow = {
+  id: string;
+  title: string;
+  body?: string;
+  updatedAt?: string;
+  tone?: string;
+  resumeUpdatedAfter?: boolean;
+  resume?: { id: string; title: string; isComplete: boolean } | null;
+};
 
 export type SortKey = "recent" | "name" | "score";

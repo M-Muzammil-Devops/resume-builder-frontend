@@ -61,10 +61,10 @@ export function CoverLettersCard({ letters, busy, onNew }: { letters: CoverLette
             <Mail size={34} />
           </div>
           <h4>No cover letters yet</h4>
-          <p>Write one in minutes. It uses the details from your resume.</p>
+          <p>Generate one in seconds from a finalized resume, then download PDF or DOCX.</p>
           <button type="button" className={cx(s.btn, s.primary, s.sm)} onClick={onNew} disabled={busy}>
             <Plus size={14} aria-hidden="true" />
-            Write a cover letter
+            Generate cover letter
           </button>
         </div>
       ) : (
@@ -74,7 +74,7 @@ export function CoverLettersCard({ letters, busy, onNew }: { letters: CoverLette
               <span className={s.fi} style={{ background: "rgba(139,92,246,.16)", color: "#a78bfa" }} aria-hidden="true">
                 <Mail size={17} />
               </span>
-              <Link href={`/user/cover-letters/${l.id}`} className={s.itTxt}>
+              <Link href={`/user/cover-letters?id=${encodeURIComponent(l.id)}`} className={s.itTxt}>
                 <b title={l.title}>{l.title}</b>
                 <small>{l.updatedAt ? `Edited ${timeAgo(l.updatedAt)}` : "Draft"}</small>
               </Link>

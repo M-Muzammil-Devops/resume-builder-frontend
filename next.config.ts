@@ -39,15 +39,15 @@ const nextConfig: NextConfig = {
       { source: "/jobs/:path*", destination: "/user/jobs/:path*", permanent: false },
       { source: "/editor/local-demo", destination: "/user/dashboard", permanent: false },
       { source: "/editor/:id", destination: "/user/editor/:id", permanent: false },
-      { source: "/cover-letters/:id", destination: "/user/cover-letters/:id", permanent: false },
+      { source: "/cover-letters/:id", destination: "/user/cover-letters?id=:id", permanent: false },
+      { source: "/user/cover-letters/:id", destination: "/user/cover-letters?id=:id", permanent: false },
       // BUG-1223: short and list paths people type or bookmark.
       { source: "/tracker", destination: "/user/tracker", permanent: false },
       // Tracker and Auto Apply moved out of /user/jobs/* into the User Dashboard shell.
       { source: "/user/jobs/tracker", destination: "/user/tracker", permanent: false },
       { source: "/user/jobs/auto-apply", destination: "/user/auto-apply", permanent: false },
       { source: "/auto-apply", destination: "/user/auto-apply", permanent: false },
-      { source: "/cover-letters", destination: "/user/dashboard#cover-letters", permanent: false },
-      { source: "/user/cover-letters", destination: "/user/dashboard#cover-letters", permanent: false },
+      { source: "/cover-letters", destination: "/user/cover-letters", permanent: false },
       // The AI Voice Cleaner tool was retired; old links land on Remove Background Noise.
       { source: "/tools/ai-voice-cleaner", destination: "/tools/audio-noise-remover", permanent: true },
       { source: "/tools/noise-remover", destination: "/tools/audio-noise-remover", permanent: false },

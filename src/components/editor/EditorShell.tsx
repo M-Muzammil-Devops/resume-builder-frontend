@@ -33,6 +33,9 @@ import { PreviewModal } from "@/components/editor/PreviewModal";
 import { SharePanel } from "@/components/editor/SharePanel";
 import { DownloadModal } from "@/components/editor/DownloadModal";
 import { ProfileMenu } from "@/components/editor/ProfileMenu";
+import { GenerateLetterDialog } from "@/components/coverLetters/GenerateLetterDialog";
+import { roleFromHeadline } from "@/lib/coverLetters";
+import { Mail } from "lucide-react";
 import { ApiError, apiFetch } from "@/lib/api";
 import { fallbackResumeTitle, useEditorStore } from "@/store/editorStore";
 import type { ResumeDocument } from "@/shared";
@@ -74,6 +77,7 @@ export function EditorShell({ documentId }: Props) {
   const pauseAutosave = useRef(false);
   const canvasInnerRef = useRef<HTMLDivElement>(null);
   const [completing, setCompleting] = useState(false);
+  const [letterDialog, setLetterDialog] = useState<"finalized" | "open" | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ w: 794, h: 1123 });
 
@@ -293,6 +297,7 @@ export function EditorShell({ documentId }: Props) {
     const existing = useEditorStore.getState().document;
     if (!existing) return;
     if (existing.isComplete) {
+      if (!window.confirm("Move this resume back to Draft? Your cover letters stay saved.")) return;
       setCompleting(true);
       try {
         await apiFetch(`/resumes/${documentId}`, {
@@ -302,7 +307,7 @@ export function EditorShell({ documentId }: Props) {
         useEditorStore.getState().commitDocument({ ...useEditorStore.getState().document!, isComplete: false });
         useEditorStore.getState().markSaved();
       } catch (err) {
-        alert(err instanceof Error ? err.message : "Could not mark incomplete");
+        alert(err instanceof Error ? err.message : "Could not move the resume back to Draft");
       } finally {
         setCompleting(false);
       }
@@ -347,8 +352,10 @@ export function EditorShell({ documentId }: Props) {
         latest.content === preserved.content &&
         latest.design === preserved.design;
       if (same) useEditorStore.getState().markSaved();
+      // Batch 2: finalizing offers an automatic cover letter (optional, "Skip for now").
+      setLetterDialog("finalized");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Could not mark complete");
+      alert(err instanceof Error ? err.message : "Could not finalize the resume");
     } finally {
       pauseAutosave.current = false;
       setCompleting(false);
@@ -428,7 +435,8 @@ export function EditorShell({ documentId }: Props) {
           <span
             className={clsx(
               saveStatus === "error" && "text-red-600",
-              saveStatus === "saved" && "text-emerald-700"
+              saveStatus === "saved" && "text-emerald-700",
+              saveStatus !== "error" && "max-[360px]:hidden"
             )}
           >
             {saveLabel}
@@ -443,11 +451,24 @@ export function EditorShell({ documentId }: Props) {
               Retry
             </button>
           )}
+          {resumeDoc.isComplete && (
+            <button
+              type="button"
+              onClick={() => setLetterDialog("open")}
+              aria-label="Generate cover letter"
+              title="Generate a cover letter from this resume"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#cfe3df] bg-white px-2.5 py-1.5 font-semibold text-[var(--rb-teal-dark)] hover:bg-[#f3faf8]"
+            >
+              <Mail size={14} />
+              <span className="max-sm:hidden">Cover letter</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={markComplete}
             disabled={completing}
-            aria-label={resumeDoc.isComplete ? "Mark incomplete" : "Mark complete"}
+            aria-label={resumeDoc.isComplete ? "Finalized — move back to draft" : "Finalize resume"}
+            title={resumeDoc.isComplete ? "Finalized. Click to move it back to Draft." : "Finalize this resume and create a cover letter"}
             className={clsx(
               "inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-semibold",
               resumeDoc.isComplete
@@ -456,7 +477,15 @@ export function EditorShell({ documentId }: Props) {
             )}
           >
             <CheckCircle2 size={14} />
-            {resumeDoc.isComplete ? "Mark incomplete" : completing ? "Completing…" : "Mark Complete"}
+            {resumeDoc.isComplete ? (
+              <span className="max-sm:hidden">{completing ? "Updating…" : "Finalized"}</span>
+            ) : completing ? (
+              "Finalizing…"
+            ) : (
+              <span>
+                Finalize<span className="max-[420px]:hidden"> Resume</span>
+              </span>
+            )}
           </button>
           <ProfileMenu />
         </div>
@@ -678,6 +707,18 @@ export function EditorShell({ documentId }: Props) {
       {modal === "addSection" && <AddSectionModal />}
       {modal === "preview" && <PreviewModal />}
       {modal === "download" && <DownloadModal documentId={documentId} />}
+      {letterDialog && (
+        <GenerateLetterDialog
+          resumes={[{ id: documentId, title: resumeDoc.title || "Resume", isComplete: true }]}
+          initialResumeId={documentId}
+          defaultRole={roleFromHeadline(
+            (resumeDoc.content?.sections?.find((sec) => sec.type === "header") as { title?: string } | undefined)?.title
+          )}
+          justFinalized={letterDialog === "finalized"}
+          showResult
+          onClose={() => setLetterDialog(null)}
+        />
+      )}
     </div>
   );
 }
