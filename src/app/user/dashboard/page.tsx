@@ -64,7 +64,7 @@ export default function DashboardPage() {
       setLoadFailed(false);
       try {
         const [summary, letterRes] = await Promise.all([
-          apiFetch<DashSummary>("/user/dashboard-summary"),
+          apiFetch<DashSummary>("/user/dashboard-summary", { cache: "no-store" }),
           apiFetch<{ coverLetters: CoverLetterRow[] }>("/cover-letters").catch(() => ({ coverLetters: [] as CoverLetterRow[] })),
         ]);
         setData(summary);
@@ -93,7 +93,8 @@ export default function DashboardPage() {
 
   const resumes = useMemo(() => data?.resumes ?? [], [data]);
   const usage = data?.usage;
-  const isPro = usage ? usage.plan !== "FREE" : false;
+  // The Upgrade card waits for the summary, so Pro and Admin accounts never see it flash on load.
+  const showUpgrade = !loading && Boolean(data) && usage?.plan === "FREE";
 
   async function createResume() {
     setBusy(true);
@@ -153,7 +154,20 @@ export default function DashboardPage() {
       a.click();
       a.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      void load(true);
+      // Show the new download and usage count at once, then confirm with the server numbers.
+      setData((prev) =>
+        prev
+          ? {
+              ...prev,
+              usage: { ...prev.usage, pdfExportsUsed: prev.usage.pdfExportsUsed + 1 },
+              downloads: [
+                { id: `local-${Date.now()}`, kind: "resume" as const, resumeId, title, format: "pdf", pageSize: null, createdAt: new Date().toISOString() },
+                ...prev.downloads,
+              ].slice(0, 6),
+            }
+          : prev
+      );
+      await load(true);
     } catch (err) {
       setNotice({ tone: "err", text: friendlyError(err, "Could not create the PDF. Please try again.") });
     } finally {
@@ -268,7 +282,7 @@ export default function DashboardPage() {
       <DashboardSidebar
         active={active}
         counts={counts}
-        isPro={isPro}
+        showUpgrade={showUpgrade}
         onSection={goSection}
         onUpgrade={() => setPlansOpen(true)}
         onSignOut={() => void onSignOut()}

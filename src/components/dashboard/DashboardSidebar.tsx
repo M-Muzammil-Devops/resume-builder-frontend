@@ -63,14 +63,15 @@ export function navGroups(counts: { resumes: number; templates: number; letters:
 export function DashboardSidebar({
   active,
   counts,
-  isPro,
+  showUpgrade,
   onSection,
   onUpgrade,
   onSignOut,
 }: {
   active: NavKey;
   counts: { resumes: number; templates: number; letters: number };
-  isPro: boolean;
+  /** True only once the summary has loaded and the plan is Free. */
+  showUpgrade: boolean;
   onSection: (key: NavKey) => void;
   onUpgrade: () => void;
   onSignOut: () => void;
@@ -116,7 +117,7 @@ export function DashboardSidebar({
           </div>
         ))}
       </nav>
-      {!isPro && (
+      {showUpgrade && (
         <div className={s.planbox}>
           <span className={cx(s.pill, s.bl)}>FREE PLAN</span>
           <p>More resumes, more PDF exports and more Noise Remover minutes with Pro.</p>
@@ -125,7 +126,7 @@ export function DashboardSidebar({
           </button>
         </div>
       )}
-      <button type="button" className={cx(s.navItem, s.signout, isPro && s.planGapless)} title="Sign out" onClick={onSignOut}>
+      <button type="button" className={cx(s.navItem, s.signout, !showUpgrade && s.planGapless)} title="Sign out" onClick={onSignOut}>
         <LogOut size={17} aria-hidden="true" />
         <span className={s.navTxt}>Sign out</span>
       </button>

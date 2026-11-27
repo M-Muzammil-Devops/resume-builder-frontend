@@ -4,6 +4,8 @@ export type ProfileStep = { key: string; label: string; done: boolean };
 export type DashResume = {
   id: string;
   title: string;
+  /** Job title the user wrote in the header; null while it is empty or still sample/starter text. */
+  headline: string | null;
   templateId: string;
   layoutKey: string;
   accentColor: string | null;

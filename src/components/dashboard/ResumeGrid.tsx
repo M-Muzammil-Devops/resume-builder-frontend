@@ -84,7 +84,7 @@ function ResumeCard({
       <div className={s.rcBd}>
         <h4 title={resume.title}>{resume.title}</h4>
         <div className={s.meta}>
-          {templateName(resume.templateId)} · edited {timeAgo(resume.updatedAt)}
+          {resume.headline || (resume.score === 0 ? "Empty draft" : "No job title yet")} · edited {timeAgo(resume.updatedAt)}
         </div>
         <div className={s.rcActs} ref={ref}>
           <button type="button" className={cx(s.btn, s.sm, s.primary)} onClick={onEdit} disabled={busy}>
