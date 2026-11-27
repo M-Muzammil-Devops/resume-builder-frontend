@@ -2,62 +2,139 @@
 
 import Link from "next/link";
 import {
+  AudioLines,
   Briefcase,
   CreditCard,
   Download,
   FileText,
   FileType2,
+  SquareKanban,
   LayoutDashboard,
   LayoutTemplate,
   LogOut,
   Mail,
+  Send,
   Settings,
-  AudioLines,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cx } from "./format";
 import s from "./Dashboard.module.css";
 
-export type NavKey = "dashboard" | "resumes" | "cover-letters" | "templates" | "downloads" | "plan";
+/** In-page sections of /user/dashboard. */
+export type SectionKey = "dashboard" | "resumes" | "cover-letters" | "templates" | "downloads" | "plan";
+/** Workspace pages that open inside the same User Dashboard shell. */
+export type RouteKey = "jobs" | "tracker" | "auto-apply" | "noise-remover" | "pdf-tools" | "settings";
+export type NavKey = SectionKey | RouteKey;
 
-type Item = {
+export const SECTION_KEYS: SectionKey[] = ["dashboard", "resumes", "cover-letters", "templates", "downloads", "plan"];
+export const isSectionKey = (k: string): k is SectionKey => (SECTION_KEYS as string[]).includes(k);
+
+export type NavItem = {
+  key: NavKey;
   label: string;
   icon: LucideIcon;
-  /** In-page section of the dashboard, or a route. */
-  section?: NavKey;
+  /** Route for workspace pages; sections live on /user/dashboard. */
   href?: string;
   badge?: { text: string; tone: "gr" | "bl" };
 };
 
-type Group = { label?: string; items: Item[] };
+export type NavGroup = { label?: string; items: NavItem[] };
 
-export function navGroups(counts: { resumes: number; templates: number; letters: number }): Group[] {
+export type NavCounts = { resumes: number; templates: number; letters: number };
+
+/** Link for a section when the user is not on the dashboard page. */
+export const sectionHref = (key: SectionKey) => (key === "dashboard" ? "/user/dashboard" : `/user/dashboard#${key}`);
+
+export function navGroups(counts: NavCounts): NavGroup[] {
   return [
     {
       items: [
-        { label: "Dashboard", icon: LayoutDashboard, section: "dashboard" },
-        { label: "Resumes", icon: FileText, section: "resumes", badge: counts.resumes ? { text: String(counts.resumes), tone: "gr" } : undefined },
-        { label: "Cover Letters", icon: Mail, section: "cover-letters", badge: counts.letters ? { text: String(counts.letters), tone: "gr" } : undefined },
-        { label: "Templates", icon: LayoutTemplate, section: "templates", badge: { text: String(counts.templates), tone: "bl" } },
+        { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { key: "resumes", label: "Resumes", icon: FileText, badge: counts.resumes ? { text: String(counts.resumes), tone: "gr" } : undefined },
+        { key: "cover-letters", label: "Cover Letters", icon: Mail, badge: counts.letters ? { text: String(counts.letters), tone: "gr" } : undefined },
+        { key: "templates", label: "Templates", icon: LayoutTemplate, badge: { text: String(counts.templates), tone: "bl" } },
+      ],
+    },
+    {
+      label: "Jobs & Auto Apply",
+      items: [
+        { key: "jobs", label: "Jobs", icon: Briefcase, href: "/user/jobs" },
+        { key: "tracker", label: "Tracker", icon: SquareKanban, href: "/user/tracker" },
+        { key: "auto-apply", label: "Auto Apply", icon: Send, href: "/user/auto-apply" },
       ],
     },
     {
       label: "Tools",
       items: [
-        { label: "Noise Remover", icon: AudioLines, href: "/tools/audio-noise-remover" },
-        { label: "PDF Tools", icon: FileType2, href: "/tools#pdf", badge: { text: "SOON", tone: "gr" } },
-        { label: "Jobs & Tracker", icon: Briefcase, href: "/user/jobs" },
+        { key: "noise-remover", label: "Noise Remover", icon: AudioLines, href: "/user/noise-remover" },
+        { key: "pdf-tools", label: "PDF Tools", icon: FileType2, href: "/user/pdf-tools", badge: { text: "SOON", tone: "gr" } },
       ],
     },
     {
       label: "Account",
       items: [
-        { label: "Downloads", icon: Download, section: "downloads" },
-        { label: "Plan & Billing", icon: CreditCard, section: "plan" },
-        { label: "Settings", icon: Settings, href: "/user/settings" },
+        { key: "downloads", label: "Downloads", icon: Download },
+        { key: "plan", label: "Plan & Billing", icon: CreditCard },
+        { key: "settings", label: "Settings", icon: Settings, href: "/user/settings" },
       ],
     },
   ];
+}
+
+/**
+ * One nav entry. Sections scroll in place on the dashboard (onSection given);
+ * everywhere else they link back to /user/dashboard#section. Routes are always links.
+ */
+export function NavEntry({
+  item,
+  active,
+  onSection,
+  onNavigate,
+  className,
+  activeClassName,
+  showText = true,
+}: {
+  item: NavItem;
+  active: NavKey;
+  onSection?: (key: SectionKey) => void;
+  onNavigate?: () => void;
+  className: string;
+  activeClassName: string;
+  showText?: boolean;
+}) {
+  const Icon = item.icon;
+  const on = item.key === active;
+  const body = (
+    <>
+      <Icon size={17} aria-hidden="true" />
+      {showText && <span className={s.navTxt}>{item.label}</span>}
+      {showText && item.badge && <em className={cx(s.pill, s[item.badge.tone], s.navBadge)}>{item.badge.text}</em>}
+    </>
+  );
+  const cls = cx(className, on && activeClassName);
+  if (!item.href && onSection && isSectionKey(item.key)) {
+    const key = item.key;
+    return (
+      <button
+        type="button"
+        className={cls}
+        aria-current={on ? "page" : undefined}
+        title={item.label}
+        onClick={() => {
+          onNavigate?.();
+          onSection(key);
+        }}
+      >
+        {body}
+      </button>
+    );
+  }
+  const href = item.href ?? sectionHref(item.key as SectionKey);
+  return (
+    <Link href={href} className={cls} aria-current={on ? "page" : undefined} title={item.label} onClick={onNavigate}>
+      {body}
+    </Link>
+  );
 }
 
 export function DashboardSidebar({
@@ -69,10 +146,11 @@ export function DashboardSidebar({
   onSignOut,
 }: {
   active: NavKey;
-  counts: { resumes: number; templates: number; letters: number };
+  counts: NavCounts;
   /** True only once the summary has loaded and the plan is Free. */
   showUpgrade: boolean;
-  onSection: (key: NavKey) => void;
+  /** Given on /user/dashboard only: sections scroll in place. */
+  onSection?: (key: SectionKey) => void;
   onUpgrade: () => void;
   onSignOut: () => void;
 }) {
@@ -87,33 +165,9 @@ export function DashboardSidebar({
           <div key={group.label ?? gi} role="group" aria-label={group.label ?? "Main"}>
             {group.label && <div className={s.navLbl}>{group.label}</div>}
             {gi > 0 && <span className={s.navGap} aria-hidden="true" />}
-            {group.items.map((item) => {
-              const Icon = item.icon;
-              const on = item.section === active;
-              const body = (
-                <>
-                  <Icon size={17} aria-hidden="true" />
-                  <span className={s.navTxt}>{item.label}</span>
-                  {item.badge && <em className={cx(s.pill, s[item.badge.tone], s.navBadge)}>{item.badge.text}</em>}
-                </>
-              );
-              return item.href ? (
-                <Link key={item.label} href={item.href} className={s.navItem} title={item.label}>
-                  {body}
-                </Link>
-              ) : (
-                <button
-                  key={item.label}
-                  type="button"
-                  className={cx(s.navItem, on && s.navOn)}
-                  aria-current={on ? "page" : undefined}
-                  title={item.label}
-                  onClick={() => onSection(item.section!)}
-                >
-                  {body}
-                </button>
-              );
-            })}
+            {group.items.map((item) => (
+              <NavEntry key={item.key} item={item} active={active} onSection={onSection} className={s.navItem} activeClassName={s.navOn} />
+            ))}
           </div>
         ))}
       </nav>

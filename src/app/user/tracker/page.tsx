@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragEndEvent,
@@ -21,10 +20,13 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, SquareKanban, Trash2 } from "lucide-react";
 import type { TrackerStage } from "@/shared";
-import { AppShell } from "@/components/AppShell";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
+import { UserWorkspace, WorkspaceHeader } from "@/components/dashboard/UserDashboardShell";
+import { cx } from "@/components/dashboard/format";
+import s from "@/components/dashboard/Dashboard.module.css";
+import w from "@/components/dashboard/Workspace.module.css";
 
 type TrackerItem = {
   id: string;
@@ -74,34 +76,32 @@ function Card({
   const [company, setCompany] = useState(item.company);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm ${isDragging ? "opacity-70 ring-2 ring-teal-400" : ""}`}
-    >
-      <div className="cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-        <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-        <div className="mt-1 text-xs text-slate-500">{item.company}</div>
+    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cx(w.tcard, isDragging && w.tcardDrag)}>
+      <div className={w.grab} {...attributes} {...listeners}>
+        <b>{item.title}</b>
+        <small>{item.company}</small>
       </div>
       {editing && (
         <form
-          className="mt-2 space-y-2"
+          className={w.tedit}
           onSubmit={(e) => {
             e.preventDefault();
             onSave(item, title.trim() || item.title, company.trim() || item.company);
             setEditing(false);
           }}
         >
-          <input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" />
-          <input aria-label="Company" value={company} onChange={(e) => setCompany(e.target.value)} className="w-full rounded border border-slate-200 px-2 py-1 text-xs" />
-          <button type="submit" className="text-xs font-semibold text-teal-800">Save</button>
+          <input aria-label="Job title" value={title} onChange={(e) => setTitle(e.target.value)} className={w.input} />
+          <input aria-label="Company" value={company} onChange={(e) => setCompany(e.target.value)} className={w.input} />
+          <button type="submit" className={cx(s.btn, s.sm, s.primary)}>
+            Save
+          </button>
         </form>
       )}
-      <div className="mt-2 flex items-center gap-1">
+      <div className={w.tcardActs}>
         <select
           aria-label={`Move ${item.title} to`}
           value={item.stage}
-          className="mr-auto max-w-[9rem] rounded border border-slate-200 bg-white px-1 py-0.5 text-xs text-slate-600"
+          className={w.select}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
           onChange={(e) => onMove(item, e.target.value as TrackerStage)}
@@ -112,23 +112,11 @@ function Card({
             </option>
           ))}
         </select>
-        <button
-          type="button"
-          aria-label={`Edit ${item.title}`}
-          className="rounded p-1 text-slate-500 hover:bg-slate-100"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setEditing((open) => !open)}
-        >
-          <Pencil size={13} />
+        <button type="button" aria-label={`Edit ${item.title}`} className={w.icoBtn} onPointerDown={(e) => e.stopPropagation()} onClick={() => setEditing((open) => !open)}>
+          <Pencil size={14} aria-hidden="true" />
         </button>
-        <button
-          type="button"
-          aria-label={`Remove ${item.title}`}
-          className="rounded p-1 text-slate-500 hover:bg-red-50 hover:text-red-600"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => onRemove(item)}
-        >
-          <Trash2 size={13} />
+        <button type="button" aria-label={`Remove ${item.title}`} className={cx(w.icoBtn, w.icoDanger)} onPointerDown={(e) => e.stopPropagation()} onClick={() => onRemove(item)}>
+          <Trash2 size={14} aria-hidden="true" />
         </button>
       </div>
     </div>
@@ -151,13 +139,13 @@ function Column({
   // The whole column (header included) is the drop target.
   const { setNodeRef, isOver } = useDroppable({ id: stage.key });
   return (
-    <div ref={setNodeRef} aria-label={`${stage.label} column`} role="group" className={`flex w-64 shrink-0 flex-col rounded-xl border bg-white/70 shadow-sm backdrop-blur-sm ${isOver ? "border-teal-400" : "border-white/70"}`}>
-      <div className="border-b border-slate-200 px-3 py-3 text-sm font-semibold text-slate-700">
+    <div ref={setNodeRef} aria-label={`${stage.label} column`} role="group" className={cx(w.col, isOver && w.colOver)}>
+      <div className={w.colHead}>
         {stage.label}
-        <span className="ml-2 text-xs font-normal text-slate-400">{items.length}</span>
+        <em className={cx(s.pill, s.gr)}>{items.length}</em>
       </div>
       <SortableContext id={stage.key} items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex min-h-24 flex-1 flex-col gap-2 p-2">
+        <div className={w.colBody}>
           {items.map((item) => (
             <Card key={item.id} item={item} onSave={onSave} onRemove={onRemove} onMove={onMove} />
           ))}
@@ -167,8 +155,7 @@ function Column({
   );
 }
 
-export default function TrackerPage() {
-  const router = useRouter();
+function TrackerView() {
   const [items, setItems] = useState<TrackerItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -194,10 +181,6 @@ export default function TrackerPage() {
   }
 
   useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
     apiFetch<{
       applications: Array<{
         id: string;
@@ -220,7 +203,7 @@ export default function TrackerPage() {
       )
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load tracker"))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   async function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -312,50 +295,54 @@ export default function TrackerPage() {
   }
 
   return (
-    <AppShell mainClassName="overflow-hidden">
-      <main className="overflow-hidden p-6">
-        <div className="app-page-in mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="auth-display text-2xl font-bold text-slate-900">Job Tracker</h1>
-            <p className="text-sm text-slate-500">Add a card, edit it, remove it, or drag it between columns (or use “Move to” on a card).</p>
-          </div>
-          <form className="flex flex-wrap gap-2" onSubmit={(event) => void addCard(event)}>
-            <input aria-label="New job title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Job title" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-            <input aria-label="New company" required value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-            <button type="submit" className="btn-app-primary">
-              <Plus size={15} />
-              Add card
-            </button>
-          </form>
-          {error && <p className="w-full text-sm text-red-600">{error}</p>}
+    <>
+      <WorkspaceHeader
+        icon={<SquareKanban size={22} />}
+        title="Tracker"
+        sub="Add a card, edit it, remove it, or drag it between columns (or use “Move to” on a card)."
+      />
+      <form className={cx(w.panel, w.addForm)} onSubmit={(event) => void addCard(event)}>
+        <input aria-label="New job title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Job title" className={w.input} />
+        <input aria-label="New company" required value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Company" className={w.input} />
+        <button type="submit" className={cx(s.btn, s.primary, w.btnFull)} style={{ height: 42 }}>
+          <Plus size={15} aria-hidden="true" />
+          Add card
+        </button>
+      </form>
+      {error && (
+        <p role="alert" className={cx(w.msg, w.msgErr)}>
+          {error}
+        </p>
+      )}
+      {toast && (
+        <div role="status" className={w.toast}>
+          {toast}
         </div>
+      )}
 
-        {toast && (
-          <div role="status" className="rb-toast">
-            {toast}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="app-page-body flex h-[calc(100vh-180px)] gap-3 overflow-hidden pb-2" aria-busy="true" aria-label="Loading tracker">
-            {STAGES.map((stage) => (
-              <div key={stage.key} className="flex w-64 shrink-0 flex-col gap-2 rounded-xl border border-slate-200 bg-white/60 p-3">
-                <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
-                <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
-                <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
-              </div>
-            ))}
-          </div>
-        ) : (
+      {loading ? (
+        <div className={w.board} aria-busy="true" aria-label="Loading tracker">
+          {STAGES.map((stage) => (
+            <div key={stage.key} className={w.skelCol} />
+          ))}
+        </div>
+      ) : (
         <DndContext sensors={sensors} collisionDetection={columnCollision} autoScroll={{ threshold: { x: 0.1, y: 0.2 } }} onDragEnd={(event) => void onDragEnd(event)}>
-          <div className="app-page-body rb-scroll flex h-[calc(100vh-180px)] gap-3 overflow-x-auto pb-2">
+          <div className={w.board}>
             {STAGES.map((stage) => (
               <Column key={stage.key} stage={stage} items={byStage[stage.key]} onSave={(item, nextTitle, nextCompany) => void saveCard(item, nextTitle, nextCompany)} onRemove={(item) => void removeCard(item)} onMove={(item, next) => void moveItem(item, next)} />
             ))}
           </div>
         </DndContext>
-        )}
-      </main>
-    </AppShell>
+      )}
+    </>
+  );
+}
+
+export default function TrackerPage() {
+  return (
+    <UserWorkspace active="tracker">
+      <TrackerView />
+    </UserWorkspace>
   );
 }

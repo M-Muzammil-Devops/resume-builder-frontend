@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bell, FileText, LayoutDashboard, LayoutTemplate, LogOut, Moon, Search, Settings, ShieldCheck, Sun, Wrench, X } from "lucide-react";
 import { THEME_EVENT, applyTheme, currentTheme, type Theme } from "@/lib/theme";
 import type { LandingTemplate } from "@/lib/landingTemplates";
@@ -16,10 +17,13 @@ type Hit =
   | { kind: "template"; id: string; label: string; sub: string; template: LandingTemplate }
   | { kind: "tool"; id: string; label: string; sub: string; href: string };
 
+// Every entry opens inside the User Dashboard shell.
 const TOOLS = [
-  { id: "noise", label: "Noise Remover", sub: "Clean interview audio", href: "/tools/audio-noise-remover" },
-  { id: "pdf", label: "PDF Tools", sub: "25 tools · coming soon", href: "/tools#pdf" },
-  { id: "jobs", label: "Jobs & Tracker", sub: "Find and track applications", href: "/user/jobs" },
+  { id: "noise", label: "Noise Remover", sub: "Clean interview audio", href: "/user/noise-remover" },
+  { id: "pdf", label: "PDF Tools", sub: "25+ tools · coming soon", href: "/user/pdf-tools" },
+  { id: "jobs", label: "Jobs", sub: "Search roles and shortlist them", href: "/user/jobs" },
+  { id: "tracker", label: "Tracker", sub: "Your job applications board", href: "/user/tracker" },
+  { id: "auto-apply", label: "Auto Apply", sub: "Targeting and demo queue", href: "/user/auto-apply" },
   { id: "settings", label: "Settings", sub: "Profile, password, account", href: "/user/settings" },
 ];
 
@@ -64,6 +68,7 @@ export function TopBar({
   onPickTemplate: (t: LandingTemplate) => void;
   onSignOut: () => void;
 }) {
+  const router = useRouter();
   const [theme, setTheme] = useState<Theme | null>(null);
   const [focus, setFocus] = useState(false);
   const [mobileSearch, setMobileSearch] = useState(false);
@@ -124,7 +129,10 @@ export function TopBar({
     setMobileSearch(false);
     if (hit.kind === "resume") onOpenResume(hit.resume);
     else if (hit.kind === "template") onPickTemplate(hit.template);
-    else window.location.assign(hit.href);
+    else {
+      onQuery("");
+      router.push(hit.href);
+    }
   }
 
   const light = theme === "light";

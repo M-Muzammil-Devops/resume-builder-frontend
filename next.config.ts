@@ -41,12 +41,16 @@ const nextConfig: NextConfig = {
       { source: "/editor/:id", destination: "/user/editor/:id", permanent: false },
       { source: "/cover-letters/:id", destination: "/user/cover-letters/:id", permanent: false },
       // BUG-1223: short and list paths people type or bookmark.
-      { source: "/tracker", destination: "/user/jobs/tracker", permanent: false },
-      { source: "/user/tracker", destination: "/user/jobs/tracker", permanent: false },
+      { source: "/tracker", destination: "/user/tracker", permanent: false },
+      // Tracker and Auto Apply moved out of /user/jobs/* into the User Dashboard shell.
+      { source: "/user/jobs/tracker", destination: "/user/tracker", permanent: false },
+      { source: "/user/jobs/auto-apply", destination: "/user/auto-apply", permanent: false },
+      { source: "/auto-apply", destination: "/user/auto-apply", permanent: false },
       { source: "/cover-letters", destination: "/user/dashboard#cover-letters", permanent: false },
       { source: "/user/cover-letters", destination: "/user/dashboard#cover-letters", permanent: false },
       // The AI Voice Cleaner tool was retired; old links land on Remove Background Noise.
       { source: "/tools/ai-voice-cleaner", destination: "/tools/audio-noise-remover", permanent: true },
+      { source: "/tools/noise-remover", destination: "/tools/audio-noise-remover", permanent: false },
       // The browser-only "local editor" demo was removed.
       { source: "/user/editor/local-demo", destination: "/user/dashboard", permanent: false },
       // "Edit PDF" duplicated the PDF Editor (QA run3, 3a).

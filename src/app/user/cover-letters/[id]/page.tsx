@@ -4,13 +4,16 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Download, Trash2 } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
 import { ApiError, apiFetch, getApiUrl, getToken } from "@/lib/api";
+import { UserWorkspace } from "@/components/dashboard/UserDashboardShell";
+import { cx } from "@/components/dashboard/format";
+import s from "@/components/dashboard/Dashboard.module.css";
+import w from "@/components/dashboard/Workspace.module.css";
 
 type CoverLetter = { id: string; title: string; body: string; resumeId: string | null; updatedAt: string };
 
 /** BUG-315: open, edit, download and delete one cover letter. Edits autosave. */
-export default function CoverLetterPage() {
+function CoverLetterView() {
   const params = useParams<{ id: string }>();
   const id = typeof params.id === "string" ? params.id : "";
   const router = useRouter();
@@ -23,7 +26,7 @@ export default function CoverLetterPage() {
 
   useEffect(() => {
     if (!getToken()) {
-      router.replace(`/login?next=${encodeURIComponent(`/cover-letters/${id}`)}`);
+      router.replace(`/login?next=${encodeURIComponent(`/user/cover-letters/${id}`)}`);
       return;
     }
     apiFetch<{ coverLetter: CoverLetter }>(`/cover-letters/${id}`)
@@ -35,7 +38,7 @@ export default function CoverLetterPage() {
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
-          router.replace("/login");
+          router.replace(`/login?next=${encodeURIComponent(`/user/cover-letters/${id}`)}`);
           return;
         }
         setError(err instanceof ApiError && err.status === 404 ? "This cover letter does not exist." : "Could not load the cover letter.");
@@ -88,59 +91,74 @@ export default function CoverLetterPage() {
   async function remove() {
     if (!window.confirm("Delete this cover letter? This cannot be undone.")) return;
     await apiFetch(`/cover-letters/${id}`, { method: "DELETE" });
-    router.push("/dashboard");
+    router.push("/user/dashboard#cover-letters");
   }
 
   return (
-    <AppShell>
-      <main className="mx-auto max-w-3xl p-6">
-        <Link href="/dashboard" className="mb-4 inline-flex items-center gap-1 text-sm font-semibold text-teal-700">
-          <ArrowLeft size={14} aria-hidden="true" /> Dashboard
+    <>
+      <div className={w.row}>
+        <Link href="/user/dashboard#cover-letters" className={cx(s.btn, s.sm)}>
+          <ArrowLeft size={14} aria-hidden="true" /> Cover letters
         </Link>
-        {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
-        {letter && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                aria-label="Cover letter title"
-                value={title}
-                maxLength={120}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  scheduleSave(e.target.value, body);
-                }}
-                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-lg font-semibold text-slate-900"
-              />
-              <span role="status" className="text-xs text-slate-500">
-                {status === "saving" ? "Saving…" : status === "saved" ? "All changes saved" : status === "error" ? "Save failed" : ""}
-              </span>
-            </div>
-            <textarea
-              aria-label="Cover letter text"
-              value={body}
-              maxLength={10000}
+      </div>
+      {error && (
+        <p role="alert" className={cx(w.msg, w.msgErr)}>
+          {error}
+        </p>
+      )}
+      {letter ? (
+        <section className={cx(w.panel, w.stack)} aria-label="Cover letter">
+          <div className={w.row}>
+            <input
+              aria-label="Cover letter title"
+              value={title}
+              maxLength={120}
               onChange={(e) => {
-                setBody(e.target.value);
-                scheduleSave(title, e.target.value);
+                setTitle(e.target.value);
+                scheduleSave(e.target.value, body);
               }}
-              rows={20}
-              placeholder="Dear Hiring Manager,"
-              className="w-full rounded-lg border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-800"
+              className={w.input}
+              style={{ flex: "1 1 240px", width: "auto", fontSize: 17, fontWeight: 700 }}
             />
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn-app-secondary" onClick={() => void download("docx")}>
-                <Download size={14} aria-hidden="true" /> Download DOCX
-              </button>
-              <button type="button" className="btn-app-secondary" onClick={() => void download("txt")}>
-                <Download size={14} aria-hidden="true" /> Download TXT
-              </button>
-              <button type="button" className="btn-app-secondary ml-auto text-red-600" onClick={() => void remove()}>
-                <Trash2 size={14} aria-hidden="true" /> Delete
-              </button>
-            </div>
+            <span role="status" className={w.muted}>
+              {status === "saving" ? "Saving…" : status === "saved" ? "All changes saved" : status === "error" ? "Save failed" : ""}
+            </span>
           </div>
-        )}
-      </main>
-    </AppShell>
+          <textarea
+            aria-label="Cover letter text"
+            value={body}
+            maxLength={10000}
+            onChange={(e) => {
+              setBody(e.target.value);
+              scheduleSave(title, e.target.value);
+            }}
+            rows={20}
+            placeholder="Dear Hiring Manager,"
+            className={w.textarea}
+          />
+          <div className={w.row}>
+            <button type="button" className={s.btn} onClick={() => void download("docx")}>
+              <Download size={14} aria-hidden="true" /> Download DOCX
+            </button>
+            <button type="button" className={s.btn} onClick={() => void download("txt")}>
+              <Download size={14} aria-hidden="true" /> Download TXT
+            </button>
+            <button type="button" className={cx(s.btn, s.danger)} style={{ marginLeft: "auto" }} onClick={() => void remove()}>
+              <Trash2 size={14} aria-hidden="true" /> Delete
+            </button>
+          </div>
+        </section>
+      ) : (
+        !error && <div className={s.skel} style={{ height: 420 }} aria-busy="true" aria-label="Loading cover letter" />
+      )}
+    </>
+  );
+}
+
+export default function CoverLetterPage() {
+  return (
+    <UserWorkspace active="cover-letters">
+      <CoverLetterView />
+    </UserWorkspace>
   );
 }

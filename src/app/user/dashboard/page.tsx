@@ -4,34 +4,23 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { takeAuthNotice, createResumeFromLandingTemplate } from "@/lib/continueAfterAuth";
 import { LANDING_TEMPLATES, type LandingTemplate } from "@/lib/landingTemplates";
-import { createSampleDevopsResume } from "@/shared";
 import { ApiError, apiFetch, clearToken, getToken } from "@/lib/api";
 import { signOut } from "@/hooks/useCurrentUser";
-import { DashboardSidebar, type NavKey } from "@/components/dashboard/DashboardSidebar";
-import { TopBar, type Alert } from "@/components/dashboard/TopBar";
+import { isSectionKey, type SectionKey } from "@/components/dashboard/DashboardSidebar";
+import { UserDashboardShell } from "@/components/dashboard/UserDashboardShell";
+import { buildAlerts } from "@/components/dashboard/alerts";
+import { createStarterResume, friendlyError } from "@/components/dashboard/actions";
 import { WelcomeCard } from "@/components/dashboard/WelcomeCard";
 import { UsageCard } from "@/components/dashboard/UsageCard";
 import { TemplateStrip } from "@/components/dashboard/TemplateStrip";
 import { ResumeGrid } from "@/components/dashboard/ResumeGrid";
 import { CoverLettersCard, DownloadsCard, ToolsCard } from "@/components/dashboard/BottomRow";
 import { DeleteDialog, PlansDialog, RenameDialog } from "@/components/dashboard/Modals";
-import { MobileTabBar } from "@/components/dashboard/MobileTabBar";
 import { UpgradeSectionsDialog, sectionLimitFromBody } from "@/components/plan/UpgradeSectionsDialog";
 import { sectionLimitBlocked } from "@/shared/sectionLimit";
-import { cx, fileSafe, firstName, greetingForHour, usagePct } from "@/components/dashboard/format";
+import { cx, fileSafe, firstName, greetingForHour } from "@/components/dashboard/format";
 import type { CoverLetterRow, DashDownload, DashResume, DashSummary } from "@/components/dashboard/types";
 import s from "@/components/dashboard/Dashboard.module.css";
-
-/** BUG-920/320: friendly messages; never show raw server error text. */
-function friendlyError(err: unknown, fallback: string): string {
-  if (err instanceof ApiError && err.status === 402) {
-    return err.message && err.message.length < 160 ? err.message : "You've reached the Free plan limit. Upgrade to Pro, or delete a resume to make room.";
-  }
-  if (err instanceof ApiError && err.status === 429 && err.message.length < 160) return err.message;
-  if (err instanceof ApiError && err.status >= 500) return fallback;
-  if (err instanceof ApiError && err.message && err.message.length < 160) return err.message;
-  return fallback;
-}
 
 type Notice = { tone: "err" | "info" | "ok"; text: string } | null;
 
@@ -50,8 +39,7 @@ export default function DashboardPage() {
   const [deleting, setDeleting] = useState<DashResume | null>(null);
   const [plansOpen, setPlansOpen] = useState(false);
   const [upgrade, setUpgrade] = useState<{ resumeId: string; limit: number; count: number } | null>(null);
-  const [active, setActive] = useState<NavKey>("dashboard");
-  const [query, setQuery] = useState("");
+  const [active, setActive] = useState<SectionKey>("dashboard");
   const [greeting, setGreeting] = useState("Hello");
 
   useEffect(() => {
@@ -103,18 +91,8 @@ export default function DashboardPage() {
     setBusy(true);
     setNotice(null);
     try {
-      const sample = createSampleDevopsResume();
-      const res = await apiFetch<{ resume: { id: string } }>("/resumes", {
-        method: "POST",
-        body: JSON.stringify({
-          title: "Untitled Resume",
-          templateId: sample.templateId,
-          layoutKey: sample.layoutKey,
-          content: sample.content,
-          design: sample.design,
-        }),
-      });
-      router.push(`/user/editor/${res.resume.id}`);
+      const id = await createStarterResume();
+      router.push(`/user/editor/${id}`);
     } catch (err) {
       setNotice({ tone: "err", text: friendlyError(err, "Could not create a resume. Please try again.") });
       setBusy(false);
@@ -256,7 +234,7 @@ export default function DashboardPage() {
     }
   }
 
-  function goSection(key: NavKey) {
+  function goSection(key: SectionKey) {
     setActive(key);
     if (key === "dashboard") {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -270,51 +248,64 @@ export default function DashboardPage() {
     window.location.assign("/login");
   }
 
-  const alerts = useMemo<Alert[]>(() => {
-    if (!data) return [];
-    const out: Alert[] = [];
-    const u = data.usage;
-    const near = (used: number, limit: number) => limit > 0 && usagePct(used, limit) >= 80;
-    if (near(u.pdfExportsUsed, u.pdfExportsLimit))
-      out.push({ id: "pdf", tone: "warn", title: "PDF exports almost used", detail: `${u.pdfExportsUsed} of ${u.pdfExportsLimit} this month`, action: () => setPlansOpen(true) });
-    if (near(u.resumesUsed, u.resumesLimit))
-      out.push({ id: "res", tone: "warn", title: "Resume limit almost reached", detail: `${u.resumesUsed} of ${u.resumesLimit} resumes`, action: () => setPlansOpen(true) });
-    if (near(u.audioMinutesUsed, u.audioMinutesLimit))
-      out.push({ id: "aud", tone: "warn", title: "Noise Remover minutes almost used", detail: `${u.audioMinutesUsed} of ${u.audioMinutesLimit} min`, action: () => setPlansOpen(true) });
-    const verify = data.profileSteps.find((st) => st.key === "verified" && !st.done);
-    if (verify) out.push({ id: "verify", tone: "info", title: "Verify your email", detail: "Check your inbox for the verification link.", action: () => router.push("/user/settings") });
-    const weak = [...data.resumes].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).find((r) => r.score < 80);
-    if (weak)
-      out.push({ id: `weak-${weak.id}`, tone: "info", title: `“${weak.title}” is ${weak.score}% ready`, detail: weak.missing.length ? `Add: ${weak.missing.slice(0, 2).join(", ")}` : "Open it to finish", action: () => openResume(weak) });
-    return out;
+  const alerts = useMemo(
+    () => buildAlerts(data, { onPlans: () => setPlansOpen(true), onSettings: () => router.push("/user/settings"), onOpenResume: openResume }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, router]);
+    [data, router]
+  );
+
+  // Sidebar links from other workspace pages land on /user/dashboard#section: scroll there once the page has content.
+  useEffect(() => {
+    if (loading) return;
+    const key = window.location.hash.replace(/^#/, "");
+    if (!key || !isSectionKey(key)) return;
+    const frame = requestAnimationFrame(() => {
+      setActive(key);
+      document.getElementById(key)?.scrollIntoView({ block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loading]);
 
   const latest = resumes[0];
   const counts = { resumes: resumes.length, templates: LANDING_TEMPLATES.length, letters: letters.length };
 
-  return (
-    <div className={s.root}>
-      <DashboardSidebar
-        active={active}
-        counts={counts}
-        showUpgrade={showUpgrade}
-        onSection={goSection}
-        onUpgrade={() => setPlansOpen(true)}
-        onSignOut={() => void onSignOut()}
-      />
-      <main className={s.main} id="main-content">
-        <TopBar
-          user={data?.user ?? null}
-          query={query}
-          onQuery={setQuery}
-          resumes={resumes}
-          templates={LANDING_TEMPLATES}
-          alerts={alerts}
-          onOpenResume={openResume}
-          onPickTemplate={(t) => void pickTemplate(t)}
-          onSignOut={() => void onSignOut()}
+  const dialogs = (
+    <>
+      {renaming && <RenameDialog initial={renaming.title} busy={busyId === renaming.id} onSave={(t) => void saveRename(t)} onClose={() => setRenaming(null)} />}
+      {deleting && <DeleteDialog title={deleting.title} busy={busyId === deleting.id} onConfirm={() => void confirmDelete()} onClose={() => setDeleting(null)} />}
+      {plansOpen && usage && <PlansDialog usage={usage} onClose={() => setPlansOpen(false)} />}
+      {upgrade && (
+        <UpgradeSectionsDialog
+          limit={upgrade.limit}
+          count={upgrade.count}
+          onClose={() => setUpgrade(null)}
+          onEditSections={() => {
+            const id = upgrade.resumeId;
+            setUpgrade(null);
+            router.push(`/user/editor/${id}`);
+          }}
         />
+      )}
+    </>
+  );
+
+  return (
+    <UserDashboardShell
+      active={active}
+      counts={counts}
+      showUpgrade={showUpgrade}
+      user={data?.user ?? null}
+      resumes={resumes}
+      alerts={alerts}
+      creating={busy}
+      onSection={goSection}
+      onUpgrade={() => setPlansOpen(true)}
+      onSignOut={() => void onSignOut()}
+      onCreate={() => void createResume()}
+      onOpenResume={openResume}
+      onPickTemplate={(t) => void pickTemplate(t)}
+      after={dialogs}
+    >
 
         {notice && (
           <div role={notice.tone === "err" ? "alert" : "status"} className={cx(s.notice, notice.tone === "err" ? s.noticeErr : notice.tone === "ok" ? s.noticeOk : s.noticeInfo)}>
@@ -385,24 +376,6 @@ export default function DashboardPage() {
             </div>
           </>
         )}
-      </main>
-      <MobileTabBar active={active} busy={busy} onSection={goSection} onCreate={() => void createResume()} />
-
-      {renaming && <RenameDialog initial={renaming.title} busy={busyId === renaming.id} onSave={(t) => void saveRename(t)} onClose={() => setRenaming(null)} />}
-      {deleting && <DeleteDialog title={deleting.title} busy={busyId === deleting.id} onConfirm={() => void confirmDelete()} onClose={() => setDeleting(null)} />}
-      {plansOpen && usage && <PlansDialog usage={usage} onClose={() => setPlansOpen(false)} />}
-      {upgrade && (
-        <UpgradeSectionsDialog
-          limit={upgrade.limit}
-          count={upgrade.count}
-          onClose={() => setUpgrade(null)}
-          onEditSections={() => {
-            const id = upgrade.resumeId;
-            setUpgrade(null);
-            router.push(`/user/editor/${id}`);
-          }}
-        />
-      )}
-    </div>
+    </UserDashboardShell>
   );
 }

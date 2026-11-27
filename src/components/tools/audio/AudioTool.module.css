@@ -843,3 +843,50 @@
   .brand { font-size: 15px; }
   .mark { width: 32px; height: 32px; }
 }
+
+/* ---------- Embedded in the User Dashboard v2 shell (/user/noise-remover) ----------
+   Only the tool: no hero, header or footer. The page background and fonts come from the dashboard,
+   and layout follows the dashboard content width (container queries) instead of the viewport. */
+.root.embed,
+:global(html[data-theme="light"]) .root.embed {
+  --head: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+  min-height: 0;
+  overflow-x: visible;
+  background: none;
+  font-family: var(--font-raleway), var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
+}
+.embed .privacy { margin-top: 18px; }
+@container (max-width: 1060px) {
+  .embed .toolGrid { grid-template-columns: 330px minmax(0, 1fr); }
+  .embed .wave { grid-template-columns: 50px 120px minmax(0, 1fr) 80px; gap: 12px; }
+}
+@container (max-width: 860px) {
+  .embed .toolGrid { grid-template-columns: minmax(0, 1fr); }
+  .embed .proc { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 20px; min-height: 0; }
+  .embed .psteps { width: 100%; }
+  .embed .psteps li { text-align: left; }
+}
+@container (max-width: 700px) {
+  .embed .result { padding: 20px; }
+  .embed .rhead { flex-direction: column; gap: 10px; }
+  .embed .rtitle { font-size: 22px; }
+  .embed .wave { grid-template-columns: 44px minmax(0, 1fr); gap: 10px 12px; padding: 14px; }
+  .embed .demo { padding: 14px; }
+  .embed .demoRow { grid-template-columns: auto minmax(0, 1fr); gap: 12px; }
+  .embed .demoRow .time { grid-column: 1 / -1; text-align: left; margin-top: -4px; }
+  .embed .wave .bars { grid-column: 1 / -1; height: 54px; }
+  .embed .wave .time { grid-column: 1 / -1; text-align: left; margin-top: -4px; }
+  .embed .play { width: 44px; height: 44px; }
+  .embed .stats3 { gap: 8px; }
+  .embed .stats3 b { font-size: 16px; }
+  .embed .stats3 div { padding: 10px; }
+  .embed .ractions { flex-direction: column; align-items: stretch; }
+  .embed .ab { margin: 0 auto; }
+  .embed .rmeta { flex-direction: column; align-items: center; text-align: center; }
+  .embed .demoCtl { justify-content: flex-start; }
+  .embed .speedLbl { display: none; }
+  .embed .speed { padding-left: 3px; }
+  .embed .speedSeg button { min-width: 32px; padding: 6px 5px; }
+  .embed .ringP { width: 160px; height: 160px; }
+  .embed .ringP b { font-size: 34px; }
+}

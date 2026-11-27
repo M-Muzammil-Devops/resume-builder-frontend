@@ -1,0 +1,194 @@
+/* Workspace pages inside the User Dashboard v2 shell (Jobs, Tracker, Auto Apply, Settings, Noise Remover,
+   PDF Tools, cover letters). Colours come from the shell's tokens (--panel, --ink, --line…) set on
+   Dashboard.module.css .root, so Day and Night mode follow automatically. CSP-safe: no inline scripts. */
+
+.page { min-width: 0; display: flex; flex-direction: column; gap: 20px; }
+
+/* page title */
+.head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; min-width: 0; }
+.headIco {
+  width: 46px; height: 46px; border-radius: 14px; flex: none; display: grid; place-items: center; color: #fff;
+  background: var(--grad); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.35);
+}
+.headTxt { min-width: 0; flex: 1 1 260px; }
+.headTxt h1 { font-size: 24px; overflow-wrap: anywhere; }
+.headTxt p { color: var(--mute); margin-top: 4px !important; font-size: 13.5px; overflow-wrap: anywhere; }
+.headActs { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; min-width: 0; }
+
+/* panels */
+.panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+  backdrop-filter: blur(14px); min-width: 0; padding: 20px 22px;
+}
+.panel h2 { font-size: 16px; margin-bottom: 4px !important; }
+.panelSub { color: var(--mute); font-size: 12.5px; margin-bottom: 14px !important; }
+.stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; min-width: 0; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+
+/* fields */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; font-weight: 700; color: var(--ink2); }
+.field small { font-weight: 500; color: var(--mute); font-size: 12px; }
+.input, .select, .textarea {
+  width: 100%; min-width: 0; height: 42px; padding: 0 12px; border-radius: 11px; border: 1px solid var(--line);
+  background: var(--panel2); color: var(--ink); font: 500 14px var(--body); outline: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.textarea { height: auto; min-height: 360px; padding: 14px; line-height: 1.6; resize: vertical; }
+.select { padding-right: 28px; cursor: pointer; }
+.select option { background: var(--pop); color: var(--ink); }
+.input::placeholder, .textarea::placeholder { color: var(--mute); }
+.input:focus, .select:focus, .textarea:focus { border-color: rgba(96, 165, 250, 0.7); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18); }
+.inputIco { position: relative; flex: 1 1 220px; min-width: 0; }
+.inputIco svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--mute); pointer-events: none; }
+.inputIco .input { padding-left: 36px; }
+.pw { position: relative; }
+.pw .input { padding-right: 46px; }
+.pwBtn {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 9px;
+  display: grid; place-items: center; border: 0; background: none; color: var(--mute); cursor: pointer;
+}
+.pwBtn:hover { color: var(--ink); background: var(--panel); }
+.check {
+  display: inline-flex; align-items: center; gap: 9px; height: 42px; padding: 0 12px; border-radius: 11px;
+  border: 1px solid var(--line); background: var(--panel2); font-size: 13px; font-weight: 700; color: var(--ink2); cursor: pointer;
+}
+.check input { width: 16px; height: 16px; accent-color: #3b82f6; }
+.switchRow { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 13.5px; font-weight: 700; }
+
+/* messages */
+.msg { padding: 11px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; }
+.msgOk { background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.4); color: var(--green); }
+.msgErr { background: rgba(244, 63, 94, 0.12); border: 1px solid rgba(244, 63, 94, 0.4); color: var(--red); }
+.msgInfo { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.35); color: var(--link); }
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; max-width: calc(100vw - 32px);
+  padding: 11px 18px; border-radius: 12px; background: var(--pop); border: 1px solid var(--line); color: var(--ink);
+  font: 700 13px var(--head); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+}
+.danger { border-color: rgba(244, 63, 94, 0.35); }
+.danger h2 { color: var(--red); }
+.muted { color: var(--mute); font-size: 13px; }
+
+/* stats */
+.stat { display: flex; flex-direction: column; gap: 6px; }
+.stat span { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--mute); }
+.stat b { font: 700 30px var(--head); color: var(--ink); }
+.statAmber b { color: var(--amber); }
+.statGreen b { color: var(--green); }
+
+/* ---------- Jobs ---------- */
+.jobs { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 20px; min-width: 0; align-items: start; }
+.jobList { padding: 6px; max-height: calc(100dvh - 300px); min-height: 280px; overflow-y: auto; scrollbar-width: thin; }
+.jobItem {
+  display: block; width: 100%; text-align: left; padding: 13px 14px; border-radius: 13px; border: 1px solid transparent;
+  background: none; cursor: pointer; color: var(--ink); min-width: 0;
+}
+.jobItem + .jobItem { margin-top: 4px; }
+.jobItem:hover { background: var(--panel2); }
+.jobOn { background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.08)); border-color: rgba(96, 165, 250, 0.45); }
+.jobItem b { display: block; font: 700 14px var(--head); overflow-wrap: anywhere; }
+.jobItem > span { display: block; color: var(--ink2); font-size: 12.5px; margin-top: 2px; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.tag {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 700;
+  background: rgba(127, 140, 190, 0.14); color: var(--ink2); border: 1px solid var(--line); max-width: 100%; overflow-wrap: anywhere;
+}
+.tagBlue { background: rgba(59, 130, 246, 0.14); color: var(--link); border-color: rgba(59, 130, 246, 0.35); }
+.jobDetail h2 { font-size: 22px; overflow-wrap: anywhere; }
+.jobMeta { color: var(--ink2); margin-top: 4px !important; overflow-wrap: anywhere; }
+.jobTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.desc {
+  margin-top: 18px; padding: 18px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line);
+  white-space: pre-wrap; font-size: 13.5px; line-height: 1.65; color: var(--ink2); overflow-wrap: anywhere;
+}
+
+/* ---------- Tracker ---------- */
+.board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; min-width: 0; min-height: 420px; scrollbar-width: thin; }
+.col {
+  flex: 1 0 200px; display: flex; flex-direction: column; border-radius: 16px; border: 1px solid var(--line);
+  background: var(--panel); backdrop-filter: blur(14px); min-height: 380px; transition: border-color 0.15s ease;
+}
+.colOver { border-color: rgba(96, 165, 250, 0.75); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+.colHead { display: flex; align-items: center; gap: 8px; padding: 13px 14px; border-bottom: 1px solid var(--line); font: 700 13px var(--head); }
+.colHead em { margin-left: auto; font-style: normal; }
+.colBody { display: flex; flex-direction: column; gap: 9px; padding: 10px; flex: 1; min-height: 96px; }
+.tcard { padding: 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); box-shadow: var(--shadow); min-width: 0; }
+.tcardDrag { opacity: 0.75; border-color: rgba(96, 165, 250, 0.8); }
+.grab { cursor: grab; }
+.grab:active { cursor: grabbing; }
+.tcard b { display: block; font: 700 13px var(--head); overflow-wrap: anywhere; }
+.tcard small { display: block; margin-top: 2px; color: var(--mute); font-size: 12px; overflow-wrap: anywhere; }
+.tcardActs { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.tcardActs .select { height: 30px; font-size: 12px; padding: 0 8px; margin-right: auto; max-width: 150px; border-radius: 9px; }
+.icoBtn {
+  width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; border: 0; background: none;
+  color: var(--mute); cursor: pointer; flex: none;
+}
+.icoBtn:hover { background: var(--panel); color: var(--ink); }
+.icoDanger:hover { color: var(--red); background: rgba(244, 63, 94, 0.12); }
+.tedit { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.tedit .input { height: 34px; font-size: 12.5px; }
+.addForm { display: flex; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.addForm .input { flex: 1 1 180px; width: auto; }
+.skelCol { flex: 1 0 200px; height: 380px; border-radius: 16px; background: linear-gradient(90deg, var(--panel), var(--panel2), var(--panel)); background-size: 200% 100%; animation: wskel 1.2s ease infinite; }
+@keyframes wskel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ---------- PDF tools ---------- */
+.pdfGroup { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pdfGroupHead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pdfGroupHead h2 { font-size: 16px; }
+.pdfGroupHead p { color: var(--mute); font-size: 12.5px; flex: 1 1 200px; }
+.pdfGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; min-width: 0; }
+.pdfCard {
+  display: flex; flex-direction: column; gap: 8px; text-align: left; padding: 15px; border-radius: 15px; min-width: 0;
+  background: var(--panel); border: 1px solid var(--line); color: var(--ink); cursor: pointer; backdrop-filter: blur(14px);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.pdfCard:hover { border-color: rgba(96, 165, 250, 0.55); transform: translateY(-1px); }
+.pdfTop { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pdfIco { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--link); background: rgba(59, 130, 246, 0.14); border: 1px solid rgba(59, 130, 246, 0.3); flex: none; }
+.pdfCard b { font: 700 13.5px var(--head); overflow-wrap: anywhere; }
+.pdfCard small { color: var(--mute); font-size: 12px; overflow-wrap: anywhere; }
+.feature { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.feature > div { flex: 1 1 240px; min-width: 0; }
+.pdfCard.feature { flex-direction: row; align-items: center; gap: 16px; }
+.soon { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding: 36px 22px; }
+.soon h2 { font-size: 22px; }
+.soon p { color: var(--ink2); max-width: 520px; }
+.soonIco { width: 72px; height: 72px; border-radius: 20px; display: grid; place-items: center; color: #fff; background: var(--grad); box-shadow: 0 12px 28px rgba(59, 130, 246, 0.4); }
+
+/* ---------- Noise Remover (embedded tool) ---------- */
+.toolWrap { min-width: 0; }
+
+/* ---------- responsive (content width) ---------- */
+@container (max-width: 1100px) {
+  .pdfGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (max-width: 860px) {
+  .jobs { grid-template-columns: minmax(0, 1fr); }
+  .jobList { max-height: 360px; min-height: 0; }
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .pdfGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (max-width: 560px) {
+  .grid3 { grid-template-columns: minmax(0, 1fr); }
+  .panel { padding: 18px; }
+  .headTxt h1 { font-size: 21px; }
+  .headIco { width: 40px; height: 40px; border-radius: 12px; }
+  .headActs { width: 100%; }
+  .headActs > * { flex: 1 1 auto; }
+  .col, .skelCol { flex: 0 0 236px; }
+  .stat b { font-size: 24px; }
+}
+@container (max-width: 400px) {
+  .pdfGrid { grid-template-columns: minmax(0, 1fr); }
+  .addForm .btnFull { width: 100%; }
+}
+@media (max-width: 768px) {
+  .toast { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skelCol { animation: none; }
+}

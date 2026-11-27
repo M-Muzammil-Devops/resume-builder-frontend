@@ -105,7 +105,7 @@ export function ProfileMenu() {
             <h2 id="upgrade-title" className="text-lg font-bold">Upgrade ResumeBuilder</h2>
             <p className="mt-2 text-sm text-slate-500">Pro adds DOCX export, custom domains, and unlimited resumes. Billing is not live on this staging server yet.</p>
             <ul className="mt-4 space-y-2 text-sm">
-              <li>Free — 1 resume, PDF export</li>
+              <li>Free — PDF export with monthly plan limits</li>
               <li>Pro — unlimited resumes, DOCX, share expiry</li>
             </ul>
             <button type="button" className="auth-submit mt-5" onClick={() => setUpgrade(false)}>

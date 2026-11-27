@@ -7,10 +7,10 @@ import { cx, timeAgo } from "./format";
 import s from "./Dashboard.module.css";
 
 const TOOLS = [
-  { href: "/tools/audio-noise-remover", label: "Noise Remover", sub: "Clean interview audio", icon: AudioLines, bg: "linear-gradient(135deg,#22d3ee,#3b82f6)" },
-  { href: "/tools#pdf", label: "PDF Tools", sub: "25 tools · coming soon", icon: FileType2, bg: "linear-gradient(135deg,#f59e0b,#f43f5e)" },
-  { href: "/user/jobs", label: "Jobs", sub: "Search and track roles", icon: Briefcase, bg: "linear-gradient(135deg,#22c55e,#14b8a6)" },
-  { href: "/user/jobs/tracker", label: "Tracker", sub: "Your applications", icon: Sparkles, bg: "linear-gradient(135deg,#8b5cf6,#ec4899)" },
+  { href: "/user/noise-remover", label: "Noise Remover", sub: "Clean interview audio", icon: AudioLines, bg: "linear-gradient(135deg,#22d3ee,#3b82f6)" },
+  { href: "/user/pdf-tools", label: "PDF Tools", sub: "25+ tools · coming soon", icon: FileType2, bg: "linear-gradient(135deg,#f59e0b,#f43f5e)" },
+  { href: "/user/jobs", label: "Jobs", sub: "Search and shortlist roles", icon: Briefcase, bg: "linear-gradient(135deg,#22c55e,#14b8a6)" },
+  { href: "/user/tracker", label: "Tracker", sub: "Your applications", icon: Sparkles, bg: "linear-gradient(135deg,#8b5cf6,#ec4899)" },
 ];
 
 export function ToolsCard() {
@@ -18,8 +18,8 @@ export function ToolsCard() {
     <section className={cx(s.card, s.pad)} aria-labelledby="dash-tools">
       <div className={s.ttl}>
         <h3 id="dash-tools">Tools</h3>
-        <Link className={s.link} href="/tools">
-          All tools →
+        <Link className={s.link} href="/user/auto-apply">
+          Auto Apply →
         </Link>
       </div>
       <div className={s.tl}>
