@@ -1,91 +1,106 @@
 "use client";
 
-import { takeAuthNotice } from "@/lib/continueAfterAuth";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Copy, LayoutTemplate, Mail, Plus, Search, Trash2 } from "lucide-react";
-import { createSampleDevopsResume } from "@/shared";
-import { AppShell } from "@/components/AppShell";
-import { ApiError, apiFetch, clearToken, getToken } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
-type CoverLetter = {
-  id: string;
-  title: string;
-  body?: string;
-  updatedAt?: string;
-};
-
-type ResumeCard = {
-  id: string;
-  title: string;
-  updatedAt?: string;
-  isComplete?: boolean;
-  templateId: string;
-  layoutKey: string;
-  content: unknown;
-  design: unknown;
-};
-
-function accentOf(design: unknown) {
-  if (design && typeof design === "object" && "accentColor" in design) {
-    const value = (design as { accentColor?: unknown }).accentColor;
-    if (typeof value === "string" && /^#[0-9a-fA-F]{3,8}$/.test(value)) return value;
-  }
-  return "#0f766e";
-}
-
-function greetingForHour(hour: number) {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
-}
+import { takeAuthNotice, createResumeFromLandingTemplate } from "@/lib/continueAfterAuth";
+import { LANDING_TEMPLATES, type LandingTemplate } from "@/lib/landingTemplates";
+import { createSampleDevopsResume } from "@/shared";
+import { ApiError, apiFetch, clearToken, getToken } from "@/lib/api";
+import { signOut } from "@/hooks/useCurrentUser";
+import { DashboardSidebar, type NavKey } from "@/components/dashboard/DashboardSidebar";
+import { TopBar, type Alert } from "@/components/dashboard/TopBar";
+import { WelcomeCard } from "@/components/dashboard/WelcomeCard";
+import { UsageCard } from "@/components/dashboard/UsageCard";
+import { TemplateStrip } from "@/components/dashboard/TemplateStrip";
+import { ResumeGrid } from "@/components/dashboard/ResumeGrid";
+import { CoverLettersCard, DownloadsCard, ToolsCard } from "@/components/dashboard/BottomRow";
+import { DeleteDialog, PlansDialog, RenameDialog } from "@/components/dashboard/Modals";
+import { MobileTabBar } from "@/components/dashboard/MobileTabBar";
+import { cx, fileSafe, firstName, greetingForHour, usagePct } from "@/components/dashboard/format";
+import type { CoverLetterRow, DashDownload, DashResume, DashSummary } from "@/components/dashboard/types";
+import s from "@/components/dashboard/Dashboard.module.css";
 
 /** BUG-920/320: friendly messages; never show raw server error text. */
 function friendlyError(err: unknown, fallback: string): string {
   if (err instanceof ApiError && err.status === 402) {
-    return "You've reached the free plan limit. Upgrade to Pro, or delete a resume to make room.";
+    return err.message && err.message.length < 160 ? err.message : "You've reached the Free plan limit. Upgrade to Pro, or delete a resume to make room.";
   }
+  if (err instanceof ApiError && err.status === 429 && err.message.length < 160) return err.message;
   if (err instanceof ApiError && err.status >= 500) return fallback;
   if (err instanceof ApiError && err.message && err.message.length < 160) return err.message;
   return fallback;
 }
 
+type Notice = { tone: "err" | "info" | "ok"; text: string } | null;
+
 export default function DashboardPage() {
   const router = useRouter();
-  const [letters, setLetters] = useState<CoverLetter[]>([]);
-  const [resumes, setResumes] = useState<ResumeCard[]>([]);
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<"updated" | "title">("updated");
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [data, setData] = useState<DashSummary | null>(null);
+  const [letters, setLetters] = useState<CoverLetterRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [notice, setNotice] = useState<Notice>(null);
+  const [busy, setBusy] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [pdfId, setPdfId] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<DashResume | null>(null);
+  const [deleting, setDeleting] = useState<DashResume | null>(null);
+  const [plansOpen, setPlansOpen] = useState(false);
+  const [active, setActive] = useState<NavKey>("dashboard");
+  const [query, setQuery] = useState("");
   const [greeting, setGreeting] = useState("Hello");
+
   useEffect(() => {
     setGreeting(greetingForHour(new Date().getHours()));
     // BUG-1327/1329: a template picked before sign-in that could not be created (402 plan limit).
     const note = takeAuthNotice();
-    if (note) setNotice(note);
+    if (note) setNotice({ tone: "info", text: note });
   }, []);
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const rows = resumes.filter((resume) => !q || resume.title.toLowerCase().includes(q));
-    return [...rows].sort((a, b) =>
-      sort === "title"
-        ? a.title.localeCompare(b.title)
-        : (b.updatedAt || "").localeCompare(a.updatedAt || "")
-    );
-  }, [resumes, query, sort]);
+
+  const load = useCallback(
+    async (quiet = false) => {
+      if (!quiet) setLoading(true);
+      setLoadFailed(false);
+      try {
+        const [summary, letterRes] = await Promise.all([
+          apiFetch<DashSummary>("/user/dashboard-summary"),
+          apiFetch<{ coverLetters: CoverLetterRow[] }>("/cover-letters").catch(() => ({ coverLetters: [] as CoverLetterRow[] })),
+        ]);
+        setData(summary);
+        setLetters(letterRes.coverLetters ?? []);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          clearToken();
+          router.replace("/login?next=/user/dashboard");
+          return;
+        }
+        if (!quiet) setLoadFailed(true);
+      } finally {
+        if (!quiet) setLoading(false);
+      }
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    if (!getToken()) {
+      router.replace("/login?next=/user/dashboard");
+      return;
+    }
+    void load();
+  }, [router, load, reloadKey]);
+
+  const resumes = useMemo(() => data?.resumes ?? [], [data]);
+  const usage = data?.usage;
+  const isPro = usage ? usage.plan !== "FREE" : false;
 
   async function createResume() {
     setBusy(true);
-    setError(null);
+    setNotice(null);
     try {
       const sample = createSampleDevopsResume();
-      const res = await apiFetch<{ resume: ResumeCard }>("/resumes", {
+      const res = await apiFetch<{ resume: { id: string } }>("/resumes", {
         method: "POST",
         body: JSON.stringify({
           title: "Untitled Resume",
@@ -97,308 +112,255 @@ export default function DashboardPage() {
       });
       router.push(`/user/editor/${res.resume.id}`);
     } catch (err) {
-      setError(friendlyError(err, "Could not create a resume. Please try again."));
+      setNotice({ tone: "err", text: friendlyError(err, "Could not create a resume. Please try again.") });
       setBusy(false);
     }
   }
 
-  async function renameResume(resume: ResumeCard) {
-    const next = window.prompt("Resume name", resume.title);
-    if (next === null) return;
-    const title = next.trim().slice(0, 100) || "Untitled Resume";
+  async function pickTemplate(t: LandingTemplate) {
+    setBusy(true);
+    setNotice(null);
     try {
-      const res = await apiFetch<{ resume: ResumeCard }>(`/resumes/${resume.id}`, {
-        method: "PUT",
+      const doc = await createResumeFromLandingTemplate(t);
+      router.push(`/user/editor/${doc.id}`);
+    } catch (err) {
+      setNotice({ tone: "err", text: friendlyError(err, "Could not start this template. Please try again.") });
+      setBusy(false);
+    }
+  }
+
+  function openResume(r: DashResume) {
+    router.push(`/user/editor/${r.id}`);
+  }
+
+  async function downloadPdf(resumeId: string, title: string) {
+    setPdfId(resumeId);
+    setNotice(null);
+    try {
+      const name = fileSafe(title);
+      const res = await apiFetch<Response>(`/export/${resumeId}`, {
+        method: "POST",
+        body: JSON.stringify({ format: "pdf", filename: name }),
+      });
+      if (!(res instanceof Response) || !(res.headers.get("content-type") || "").includes("application/pdf")) {
+        throw new Error("not a pdf");
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${name}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      void load(true);
+    } catch (err) {
+      setNotice({ tone: "err", text: friendlyError(err, "Could not create the PDF. Please try again.") });
+    } finally {
+      setPdfId(null);
+    }
+  }
+
+  async function duplicateResume(r: DashResume) {
+    setBusyId(r.id);
+    setNotice(null);
+    try {
+      await apiFetch(`/resumes/${r.id}/duplicate`, { method: "POST" });
+      await load(true);
+      setNotice({ tone: "ok", text: `“${r.title}” duplicated.` });
+    } catch (err) {
+      setNotice({ tone: "err", text: friendlyError(err, "Could not duplicate the resume. Please try again.") });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function saveRename(title: string) {
+    if (!renaming) return;
+    const target = renaming;
+    setBusyId(target.id);
+    try {
+      const res = await apiFetch<{ resume: { id: string; title: string; updatedAt: string } }>(`/resumes/${target.id}`, {
+        method: "PATCH",
         body: JSON.stringify({ title }),
       });
-      setResumes((rows) => rows.map((row) => (row.id === resume.id ? { ...row, ...res.resume } : row)));
+      setData((d) => (d ? { ...d, resumes: d.resumes.map((x) => (x.id === target.id ? { ...x, title: res.resume.title, updatedAt: res.resume.updatedAt } : x)) } : d));
+      setRenaming(null);
     } catch (err) {
-      setError(friendlyError(err, "Could not rename the resume. Please try again."));
+      setNotice({ tone: "err", text: friendlyError(err, "Could not rename the resume. Please try again.") });
+      setRenaming(null);
+    } finally {
+      setBusyId(null);
     }
   }
 
-  async function duplicateResume(resume: ResumeCard) {
-    setError(null);
+  async function confirmDelete() {
+    if (!deleting) return;
+    const target = deleting;
+    setBusyId(target.id);
     try {
-    const res = await apiFetch<{ resume: ResumeCard }>("/resumes", {
-      method: "POST",
-      body: JSON.stringify({
-        title: `${resume.title} copy`.slice(0, 100),
-        templateId: resume.templateId,
-        layoutKey: resume.layoutKey,
-        content: resume.content,
-        design: resume.design,
-      }),
-    });
-    setResumes((rows) => [res.resume, ...rows]);
+      await apiFetch(`/resumes/${target.id}`, { method: "DELETE" });
+      setDeleting(null);
+      await load(true);
+      setNotice({ tone: "ok", text: `“${target.title}” deleted.` });
     } catch (err) {
-      setError(friendlyError(err, "Could not duplicate the resume. Please try again."));
+      setDeleting(null);
+      setNotice({ tone: "err", text: friendlyError(err, "Could not delete the resume. Please try again.") });
+    } finally {
+      setBusyId(null);
     }
   }
-
-  async function deleteResume(resume: ResumeCard) {
-    if (!window.confirm(`Delete “${resume.title}”?`)) return;
-    try {
-      await apiFetch(`/resumes/${resume.id}`, { method: "DELETE" });
-      setResumes((rows) => rows.filter((row) => row.id !== resume.id));
-    } catch (err) {
-      setError(friendlyError(err, "Could not delete the resume. Please try again."));
-    }
-  }
-
-  useEffect(() => {
-    if (!getToken()) {
-      router.replace("/login");
-      return;
-    }
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      setLoadFailed(false);
-      try {
-        // Resumes live on the landing templates flow — dashboard only shows cover letters.
-        const [letterRes, resumeRes] = await Promise.all([
-          apiFetch<{ coverLetters: CoverLetter[] }>("/cover-letters").catch(
-            () => ({ coverLetters: [] as CoverLetter[] })
-          ),
-          apiFetch<{ resumes: ResumeCard[] }>("/resumes"),
-        ]);
-        setLetters(letterRes.coverLetters);
-        setResumes(resumeRes.resumes);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
-          clearToken();
-          router.replace("/login");
-          return;
-        }
-        setLoadFailed(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void load();
-  }, [router, reloadKey]);
-
 
   // BUG-315: start a blank cover letter and open it.
   async function newLetter() {
     setBusy(true);
     try {
-      const res = await apiFetch<{ coverLetter: CoverLetter }>("/cover-letters", {
+      const res = await apiFetch<{ coverLetter: CoverLetterRow }>("/cover-letters", {
         method: "POST",
         body: JSON.stringify({ title: "Untitled Cover Letter", body: "" }),
       });
       router.push(`/user/cover-letters/${res.coverLetter.id}`);
     } catch (err) {
-      setError(friendlyError(err, "Could not create a cover letter. Please try again."));
+      setNotice({ tone: "err", text: friendlyError(err, "Could not create a cover letter. Please try again.") });
       setBusy(false);
     }
   }
+
+  function goSection(key: NavKey) {
+    setActive(key);
+    if (key === "dashboard") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    document.getElementById(key)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function onSignOut() {
+    await signOut().catch(() => undefined);
+    window.location.assign("/login");
+  }
+
+  const alerts = useMemo<Alert[]>(() => {
+    if (!data) return [];
+    const out: Alert[] = [];
+    const u = data.usage;
+    const near = (used: number, limit: number) => limit > 0 && usagePct(used, limit) >= 80;
+    if (near(u.pdfExportsUsed, u.pdfExportsLimit))
+      out.push({ id: "pdf", tone: "warn", title: "PDF exports almost used", detail: `${u.pdfExportsUsed} of ${u.pdfExportsLimit} this month`, action: () => setPlansOpen(true) });
+    if (near(u.resumesUsed, u.resumesLimit))
+      out.push({ id: "res", tone: "warn", title: "Resume limit almost reached", detail: `${u.resumesUsed} of ${u.resumesLimit} resumes`, action: () => setPlansOpen(true) });
+    if (near(u.audioMinutesUsed, u.audioMinutesLimit))
+      out.push({ id: "aud", tone: "warn", title: "Noise Remover minutes almost used", detail: `${u.audioMinutesUsed} of ${u.audioMinutesLimit} min`, action: () => setPlansOpen(true) });
+    const verify = data.profileSteps.find((st) => st.key === "verified" && !st.done);
+    if (verify) out.push({ id: "verify", tone: "info", title: "Verify your email", detail: "Check your inbox for the verification link.", action: () => router.push("/user/settings") });
+    const weak = [...data.resumes].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).find((r) => r.score < 80);
+    if (weak)
+      out.push({ id: `weak-${weak.id}`, tone: "info", title: `“${weak.title}” is ${weak.score}% ready`, detail: weak.missing.length ? `Add: ${weak.missing.slice(0, 2).join(", ")}` : "Open it to finish", action: () => openResume(weak) });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, router]);
+
+  const latest = resumes[0];
+  const counts = { resumes: resumes.length, templates: LANDING_TEMPLATES.length, letters: letters.length };
+
   return (
-    <AppShell>
-      <main className="mx-auto w-full max-w-[1180px] p-8 max-sm:p-5">
-        <div className="app-page-in mb-8 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="min-h-5 text-sm font-semibold text-[var(--rb-teal-dark)]">{greeting}</p>
-            <h1 className="auth-display mt-1 text-3xl font-bold text-slate-900">
-              Pick up where you left off
-            </h1>
-            <p className="mt-1.5 text-sm text-slate-500">
-              Your resumes, cover letters, and job tracker live here.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-app-primary" disabled={busy} onClick={() => void createResume()}>
-              <Plus size={16} />
-              New resume
-            </button>
-            <Link href="/user/jobs" className="btn-app-secondary">
-              Browse jobs
-            </Link>
-            <Link href="/#templates" className="btn-app-primary">
-              <LayoutTemplate size={16} />
-              Choose template
-            </Link>
-          </div>
-        </div>
+    <div className={s.root}>
+      <DashboardSidebar
+        active={active}
+        counts={counts}
+        isPro={isPro}
+        onSection={goSection}
+        onUpgrade={() => setPlansOpen(true)}
+        onSignOut={() => void onSignOut()}
+      />
+      <main className={s.main} id="main-content">
+        <TopBar
+          user={data?.user ?? null}
+          query={query}
+          onQuery={setQuery}
+          resumes={resumes}
+          templates={LANDING_TEMPLATES}
+          alerts={alerts}
+          onOpenResume={openResume}
+          onPickTemplate={(t) => void pickTemplate(t)}
+          onSignOut={() => void onSignOut()}
+        />
 
         {notice && (
-          <div role="alert" className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <span>{notice}</span>
-            <button type="button" className="shrink-0 font-semibold underline" onClick={() => setNotice(null)} aria-label="Dismiss">
+          <div role={notice.tone === "err" ? "alert" : "status"} className={cx(s.notice, notice.tone === "err" ? s.noticeErr : notice.tone === "ok" ? s.noticeOk : s.noticeInfo)}>
+            <span>{notice.text}</span>
+            <button type="button" onClick={() => setNotice(null)}>
               Dismiss
             </button>
           </div>
         )}
-        {error && (
-          <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
 
-        {loading ? (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-busy="true" aria-label="Loading resumes">
-            {[0, 1, 2].map((item) => (
-              <div key={item} className="dash-skel" />
-            ))}
-          </div>
-        ) : loadFailed ? (
-          <div role="alert" className="dash-empty">
-            <h3 className="auth-display text-lg font-bold text-slate-900">We couldn&apos;t load your documents</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
-              Something went wrong on our side. Check your connection and try again.
-            </p>
-            <div className="mt-5 flex justify-center">
-              <button type="button" className="btn-app-primary" onClick={() => setReloadKey((k) => k + 1)}>
-                Retry
-              </button>
-            </div>
+        {loadFailed ? (
+          <div className={cx(s.card, s.pad, s.empty)} role="alert">
+            <h4>We couldn&apos;t load your dashboard</h4>
+            <p>Something went wrong on our side. Check your connection and try again.</p>
+            <button type="button" className={cx(s.btn, s.primary)} onClick={() => setReloadKey((k) => k + 1)}>
+              Retry
+            </button>
           </div>
         ) : (
-          <div className="app-page-body space-y-10">
-            <section>
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Resumes</h2>
-                <label className="relative ml-auto min-w-[180px] flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search resumes"
-                    aria-label="Search resumes"
-                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-3 text-sm"
+          <>
+            <div className={cx(s.row, s.r1)}>
+              {data ? (
+                <>
+                  <WelcomeCard
+                    greeting={greeting}
+                    name={firstName(data.user.name, data.user.email)}
+                    pct={data.profileCompletionPct}
+                    steps={data.profileSteps}
+                    hasResume={Boolean(latest)}
+                    busy={busy}
+                    onContinue={() => (latest ? openResume(latest) : void createResume())}
+                    onNew={() => void createResume()}
                   />
-                </label>
-                <select
-                  aria-label="Sort resumes"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as "updated" | "title")}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm"
-                >
-                  <option value="updated">Last edited</option>
-                  <option value="title">Title</option>
-                </select>
-              </div>
-              {visible.length === 0 && resumes.length > 0 && query.trim() ? (
-                <div className="dash-empty" role="status">
-                  <h3 className="auth-display text-lg font-bold text-slate-900">No results</h3>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
-                    No resume matches “{query.trim()}”.
-                  </p>
-                  <div className="mt-5 flex justify-center">
-                    <button type="button" className="btn-app-secondary" onClick={() => setQuery("")}>
-                      Clear search
-                    </button>
-                  </div>
-                </div>
-              ) : visible.length === 0 ? (
-                <div className="dash-empty">
-                  <svg className="mx-auto mb-3" width="72" height="88" viewBox="0 0 72 88" aria-hidden>
-                    <rect x="8" y="6" width="56" height="76" rx="6" fill="#fff" stroke="#cbd5e1" />
-                    <rect x="8" y="6" width="56" height="16" rx="6" fill="#0f766e" />
-                    <rect x="16" y="32" width="40" height="4" rx="2" fill="#e2e8f0" />
-                    <rect x="16" y="42" width="32" height="4" rx="2" fill="#e2e8f0" />
-                    <rect x="16" y="52" width="36" height="4" rx="2" fill="#e2e8f0" />
-                  </svg>
-                  <h3 className="auth-display text-lg font-bold text-slate-900">No resumes yet</h3>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-                    Create one here, or start from a template.
-                  </p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <button type="button" className="btn-app-primary" disabled={busy} onClick={() => void createResume()}>
-                      <Plus size={16} />
-                      New resume
-                    </button>
-                    <Link href="/#templates" className="btn-app-secondary">
-                      Browse templates
-                      <ArrowRight size={16} />
-                    </Link>
-                  </div>
-                </div>
+                  <UsageCard usage={data.usage} onPlans={() => setPlansOpen(true)} />
+                </>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {visible.map((resume) => (
-                    <article key={resume.id} className="overflow-hidden rounded-2xl border border-white/70 bg-white shadow-sm">
-                      <Link href={`/user/editor/${resume.id}`} className="block">
-                        <div className="resume-thumb" style={{ ["--thumb" as string]: accentOf(resume.design) }} aria-hidden>
-                          <span />
-                          <span />
-                          <span />
-                        </div>
-                        <div className="px-4 pt-3">
-                        <h3 className="truncate text-base font-bold text-slate-900">{resume.title}</h3>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {resume.updatedAt ? `Edited ${new Date(resume.updatedAt).toLocaleString()}` : "Not saved yet"}
-                          {" · "}
-                          {resume.isComplete ? "Complete" : "Draft"}
-                        </p>
-                        </div>
-                      </Link>
-                      <div className="mt-3 flex gap-2 px-4 pb-4">
-                        <button type="button" className="btn-app-secondary" onClick={() => void renameResume(resume)}>
-                          Rename
-                        </button>
-                        <button type="button" className="btn-app-secondary" aria-label={`Duplicate ${resume.title}`} onClick={() => void duplicateResume(resume)}>
-                          <Copy size={14} />
-                        </button>
-                        <button type="button" className="btn-app-secondary" aria-label={`Delete ${resume.title}`} onClick={() => void deleteResume(resume)}>
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                <>
+                  <div className={s.skel} style={{ height: 230 }} />
+                  <div className={s.skel} style={{ height: 230 }} />
+                </>
               )}
-            </section>
+            </div>
 
-            <section id="cover-letters" className="scroll-mt-20">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  Cover letters
-                </h2>
-                <button type="button" className="btn-app-secondary" disabled={busy} onClick={() => void newLetter()}>
-                  <Plus size={14} aria-hidden="true" /> New cover letter
-                </button>
-              </div>
-              {letters.length === 0 ? (
-                <div className="dash-empty py-8">
-                  <Mail className="mx-auto text-[var(--rb-teal)]" size={22} />
-                  <p className="mt-2 text-sm text-slate-500">
-                    No cover letters yet. Create one, or mark a resume complete to draft one.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  {letters.map((letter, i) => (
-                    <Link
-                      key={letter.id}
-                      href={`/user/cover-letters/${letter.id}`}
-                      aria-label={`Open ${letter.title}`}
-                      className="dash-tile block"
-                      style={{ animationDelay: `${0.05 + i * 0.06}s` }}
-                    >
-                      <div className="dash-tile-strip" />
-                      <div className="p-5">
-                        <h3 className="font-semibold text-slate-900">{letter.title}</h3>
-                        {letter.body && (
-                          <p className="mt-2 line-clamp-3 text-xs text-slate-600">{letter.body}</p>
-                        )}
-                        {letter.updatedAt && (
-                          <p className="mt-3 text-xs text-slate-400">
-                            Updated {new Date(letter.updatedAt).toLocaleString()}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </section>
-          </div>
+            <TemplateStrip templates={LANDING_TEMPLATES} busy={busy} onBlank={() => void createResume()} onPick={(t) => void pickTemplate(t)} />
+
+            <ResumeGrid
+              resumes={resumes}
+              loading={loading}
+              busyId={busyId}
+              pdfId={pdfId}
+              creating={busy}
+              onEdit={openResume}
+              onPdf={(r) => void downloadPdf(r.id, r.title)}
+              onDuplicate={(r) => void duplicateResume(r)}
+              onRename={(r) => setRenaming(r)}
+              onDelete={(r) => setDeleting(r)}
+              onCreate={() => goSection("templates")}
+            />
+
+            <div className={cx(s.row, s.r3)}>
+              <ToolsCard />
+              <DownloadsCard
+                downloads={data?.downloads ?? []}
+                pdfId={pdfId}
+                onDownload={(d: DashDownload) => d.resumeId && void downloadPdf(d.resumeId, d.title)}
+              />
+              <CoverLettersCard letters={letters} busy={busy} onNew={() => void newLetter()} />
+            </div>
+          </>
         )}
       </main>
-    </AppShell>
+      <MobileTabBar active={active} busy={busy} onSection={goSection} onCreate={() => void createResume()} />
+
+      {renaming && <RenameDialog initial={renaming.title} busy={busyId === renaming.id} onSave={(t) => void saveRename(t)} onClose={() => setRenaming(null)} />}
+      {deleting && <DeleteDialog title={deleting.title} busy={busyId === deleting.id} onConfirm={() => void confirmDelete()} onClose={() => setDeleting(null)} />}
+      {plansOpen && usage && <PlansDialog usage={usage} onClose={() => setPlansOpen(false)} />}
+    </div>
   );
 }
