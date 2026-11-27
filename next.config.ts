@@ -51,6 +51,8 @@ const nextConfig: NextConfig = {
       { source: "/user/editor/local-demo", destination: "/user/dashboard", permanent: false },
       // "Edit PDF" duplicated the PDF Editor (QA run3, 3a).
       { source: "/tools/pdf/edit", destination: "/tools/pdf/pdf-editor", permanent: false },
+      // People type /signup; the create-account page is /register.
+      { source: "/signup", destination: "/register", permanent: true },
     ];
   },
 };

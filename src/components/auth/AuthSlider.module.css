@@ -53,7 +53,7 @@
   align-items: center;
   justify-content: center;
   /* bottom room for the legal footer (AuthFooter, QA run3 2b) */
-  padding: 40px 16px 56px;
+  padding: calc(40px + var(--rb-consent-h, 0px)) 16px 56px;
   overflow: hidden;
   perspective: 1800px;
   font-family: var(--font-raleway), "Segoe UI", sans-serif;
@@ -630,11 +630,12 @@
   backface-visibility: hidden;
   box-shadow: -24px 0 60px rgba(0, 0, 0, 0.3), inset 3px 0 0 rgba(255, 255, 255, 0.35);
 }
-/* Cursor fix: the panel is not one big link. Normal cursor and selectable text; only its button is a pointer. */
+/* The whole panel switches sides on click or swipe (mouse, touch, pen), so it reads as one control. */
 .ov {
-  cursor: default;
+  cursor: pointer;
   touch-action: pan-y;
-  user-select: text;
+  user-select: none;
+  -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 .ov .ghost {
@@ -866,7 +867,7 @@
 /* Short desktop windows (e.g. 1024x518): shrink the whole card so it fits without scrolling. */
 @media (max-height: 760px) and (min-width: 768px) {
   .page {
-    padding: 20px 16px 54px;
+    padding: calc(20px + var(--rb-consent-h, 0px)) 16px 54px;
   }
   .stage {
     zoom: 0.86;
@@ -887,7 +888,7 @@
 @media (max-width: 767px) {
   .page {
     align-items: flex-start;
-    padding: 18px 12px 60px;
+    padding: calc(18px + var(--rb-consent-h, 0px)) 12px 60px;
     perspective: none;
   }
   .stage {

@@ -229,7 +229,7 @@
 }
 .themeCorner {
   position: absolute;
-  top: 18px;
+  top: calc(18px + var(--rb-consent-h, 0px));
   right: 18px;
   z-index: 40;
 }

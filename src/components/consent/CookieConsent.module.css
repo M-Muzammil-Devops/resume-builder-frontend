@@ -269,6 +269,42 @@
 
 .footerLink:hover { text-decoration: underline; text-underline-offset: 3px; }
 
+/* Sign-in pages: slim full-width bar on top; the page pads its top by the bar height (--rb-consent-h). */
+.banner.compact {
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: 0;
+  width: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px max(20px, env(safe-area-inset-right)) 10px max(20px, env(safe-area-inset-left));
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: 0 12px 30px -18px rgba(2, 6, 23, 0.7);
+  animation-name: drop;
+}
+.compact .bannerHead { flex: none; }
+.compact .title { display: none; }
+.compact .text { flex: 1; min-width: 0; margin: 0; font-size: 0.8rem; line-height: 1.45; }
+.compact .actions { flex: none; flex-wrap: nowrap; }
+.compact .ghost { margin-right: 0; }
+.compact .primary,
+.compact .secondary,
+.compact .ghost { min-height: 36px; padding: 0 14px; }
+
+@keyframes drop {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 900px) {
+  .banner.compact { flex-wrap: wrap; gap: 8px 12px; padding-top: 10px; padding-bottom: 10px; }
+  .compact .text { flex-basis: calc(100% - 48px); }
+  .compact .actions { flex: 1 1 100%; justify-content: flex-end; }
+}
+
 @media (max-width: 560px) {
   .banner {
     left: 10px;
@@ -279,6 +315,13 @@
   }
   .actions > button { flex: 1 1 auto; }
   .ghost { margin-right: 0; order: 3; flex-basis: 100%; }
+  .banner.compact { top: 0; right: 0; bottom: auto; left: 0; padding: 10px 12px; }
+  .compact .badge { display: none; }
+  .compact .text { flex-basis: 100%; font-size: 0.76rem; }
+  .compact .actions { flex-wrap: wrap; gap: 6px; }
+  .compact .actions > button { flex: 1 1 auto; padding: 0 10px; font-size: 0.76rem; white-space: nowrap; }
+  /* "Cookie settings" in the text opens the same dialog, so phones keep two buttons on one row. */
+  .compact .ghost { display: none; }
   .dialog { padding: 18px; }
   .dialogActions > button { flex: 1 1 100%; }
 }

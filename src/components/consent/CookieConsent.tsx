@@ -23,6 +23,10 @@ import s from "./CookieConsent.module.css";
 
 /** Pages rendered for Puppeteer (PDF export, template thumbnails) never show the banner. */
 const SILENT_PATHS = [/^\/print(\/|$)/, /^\/template-preview(\/|$)/];
+/** Sign-in pages fill the screen with a card, so the banner is a slim top bar and the page makes room for it. */
+const COMPACT_PATHS = [/^\/login\/?$/, /^\/register\/?$/, /^\/admin\/login\/?$/, /^\/auth(\/|$)/];
+/** CSS variable the auth pages read to reserve room for the compact bar. */
+const BAR_VAR = "--rb-consent-h";
 
 type GtagWindow = Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void } & Record<string, unknown>;
 
@@ -61,6 +65,8 @@ export function CookieConsent() {
   const [draft, setDraft] = useState<ConsentChoices>(ALL_OFF);
   const lastTracked = useRef<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const compact = COMPACT_PATHS.some((re) => re.test(pathname));
+  const [bannerEl, setBannerEl] = useState<HTMLElement | null>(null);
 
   // Read the cookie after mount (no SSR mismatch).
   useEffect(() => {
@@ -125,13 +131,35 @@ export function CookieConsent() {
     setModal(true);
   }
 
+  // Compact bar: publish its height so auth pages pad their top and nothing sits under the bar.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!bannerEl || !bannerEl.classList.contains(s.compact)) {
+      root.style.removeProperty(BAR_VAR);
+      return;
+    }
+    const sync = () => root.style.setProperty(BAR_VAR, `${Math.ceil(bannerEl.getBoundingClientRect().height)}px`);
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(bannerEl);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty(BAR_VAR);
+    };
+  }, [bannerEl, compact]);
+
   if (silent || !checked) return null;
   const showBanner = !consent && !modal;
 
   return (
     <>
       {showBanner && (
-        <section className={s.banner} role="region" aria-label="Cookie consent">
+        <section
+          ref={setBannerEl}
+          className={compact ? `${s.banner} ${s.compact}` : s.banner}
+          role="region"
+          aria-label="Cookie consent"
+        >
           <div className={s.bannerHead}>
             <span className={s.badge} aria-hidden="true">
               <Cookie size={18} />

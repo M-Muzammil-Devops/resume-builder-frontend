@@ -17,6 +17,8 @@ const PATHS: Record<AuthMode, string> = { login: "/login", register: "/register"
 /** Keep in sync with --slide in AuthSlider.module.css; extra clicks during the slide are ignored. */
 const SLIDE_MS = 580;
 const SWIPE_PX = 40;
+/** Movement before a press counts as a drag (and stops being a click). */
+const DRAG_START_PX = 6;
 
 /**
  * Round 12 "Midnight Aurora" auth page: one card with both forms and a sliding overlay.
@@ -55,24 +57,31 @@ export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
 
   const other: AuthMode = mode === "login" ? "register" : "login";
 
-  // Round 15: the curved panel switches sides. Cursor fix: only its button switches on click (the rest of
-  // the panel is plain, selectable text with a normal cursor); the button's click bubbles up to here.
+  // The curved panel switches sides: a click anywhere on it (or its button) slides to the other form.
+  // A click that only finished a text selection does not switch.
   function onOverlayClick(e: MouseEvent<HTMLElement>) {
     if (Date.now() < suppressClickUntil.current) {
       suppressClickUntil.current = 0;
       e.preventDefault();
       return;
     }
-    if (!(e.target instanceof Element) || !e.target.closest("button")) return;
+    if (window.getSelection()?.toString()) return;
     go(other);
   }
 
   // Optional swipe: drag the panel toward the other side (left on sign-in, right on create-account).
-  // BUG-1313: capture the pointer so long drags and drags that end off the overlay still count.
-  // Touch / pen only: a mouse drag selects text instead.
+  // Mouse, touch and pen: a drag of SWIPE_PX or more switches; a plain press is a click.
+  // BUG-1313: once the pointer really moves, capture it so long drags and drags that end off the overlay
+  // still count. Capturing only on move keeps plain clicks untouched (WebKit drops the click on a
+  // pointer captured at pointerdown).
   function onOverlayPointerDown(e: PointerEvent<HTMLElement>) {
-    if (e.pointerType === "mouse") return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     dragStartX.current = e.clientX;
+  }
+  function onOverlayPointerMove(e: PointerEvent<HTMLElement>) {
+    const start = dragStartX.current;
+    if (start === null || Math.abs(e.clientX - start) < DRAG_START_PX) return;
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) return;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -88,8 +97,9 @@ export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
     endDrag(e);
     if (start === null) return;
     const dx = e.clientX - start;
-    if (Math.abs(dx) < SWIPE_PX) return; // a tap: the click handler switches
+    if (Math.abs(dx) < DRAG_START_PX) return; // a press: the click handler switches
     suppressClickUntil.current = Date.now() + 500; // a drag never also counts as a click
+    if (Math.abs(dx) < SWIPE_PX) return; // too short to be a swipe
     const rightWay = mode === "login" ? dx < 0 : dx > 0; // no upper bound on distance
     if (rightWay) go(other);
   }
@@ -226,6 +236,7 @@ export function AuthSlider({ initialMode }: { initialMode: AuthMode }) {
             aria-label="Switch between sign in and create account"
             onClick={onOverlayClick}
             onPointerDown={onOverlayPointerDown}
+            onPointerMove={onOverlayPointerMove}
             onPointerUp={onOverlayPointerUp}
             onPointerCancel={onOverlayPointerCancel}
             onLostPointerCapture={() => {
