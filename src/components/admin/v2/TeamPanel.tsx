@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Check, Send, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type { AdminAccess, Perms, Team, TeamMember } from "./types";
-import { ago, cx, initials } from "./format";
+import { ago, cx, initials, plural } from "./format";
 import s from "./AdminV2.module.css";
 
 const ROLE_LABEL: Record<string, string> = { SUPER_ADMIN: "Super Admin", OPERATIONS: "Operations", SUPPORT: "Support", ANALYST: "Analyst", CUSTOM: "Custom" };
@@ -114,7 +114,7 @@ export function TeamPanel({ access, meEmail }: { access: AdminAccess | null; meE
       {!editable && <div className={s.notice}>Only a Super Admin can invite or change team members.</div>}
 
       <section className={cx(s.card, s.pad)}>
-        <div className={s.ttl}><div><h3>Team members</h3><small>{all.length} people with console access</small></div></div>
+        <div className={s.ttl}><div><h3>Team members</h3><small>{plural(all.length, "person", "people")} with console access</small></div></div>
         <div className={s.tw}>
           <table className={cx(s.table, s.rt)}>
             <thead><tr><th>Member</th><th>Role</th><th>Permissions</th><th>Status</th><th>Last active</th><th className={s.right}>Actions</th></tr></thead>

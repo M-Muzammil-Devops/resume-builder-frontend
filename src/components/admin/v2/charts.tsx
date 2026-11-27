@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import s from "./AdminV2.module.css";
-import { cx, flag, num } from "./format";
+import { cx, flag, num, plural } from "./format";
 
 /* ---------- Line chart: daily traffic (area) + sign-ups (line) ---------- */
 export function TrendChart({ points }: { points: { date: string; signups: number; visits: number }[] }) {
@@ -76,7 +76,7 @@ export function TrendChart({ points }: { points: { date: string; signups: number
       <div className={s.legend} aria-live="polite">
         {h ? (
           <span>
-            <b>{h.date}</b> · {num(h.visits)} visits · {num(h.signups)} sign-ups
+            <b>{h.date}</b> · {plural(h.visits, "visit", "visits")} · {plural(h.signups, "sign-up", "sign-ups")}
           </span>
         ) : (
           <span className={s.mute}>Hover or tap a day for its numbers</span>
@@ -138,7 +138,7 @@ export function HoursChart({ hours, peakFrom, quietFrom }: { hours: { hour: numb
         <span><i className={s.dot} style={{ background: "linear-gradient(#f472b6,#8b5cf6)" }} />Peak</span>
         <span><i className={s.dot} style={{ background: "#3b82f6" }} />Normal</span>
         <span><i className={s.dot} style={{ background: "rgba(127,140,190,.5)" }} />Quiet</span>
-        {hover !== null && <span><b>{hours[hover]?.label}</b> · {num(hours[hover]?.count)} visits</span>}
+        {hover !== null && <span><b>{hours[hover]?.label}</b> · {plural(hours[hover]?.count, "visit", "visits")}</span>}
       </div>
     </div>
   );
@@ -254,7 +254,7 @@ export function WorldMap({ data }: { data: Geo[] }) {
       {act && actGeo && (
         <div className={s.tip} style={{ left: `${(act[3] / vw) * 100}%`, top: `${(act[4] / vh) * 100}%` }} role="status">
           <b>{flag(actGeo.code)} {actGeo.country}</b>
-          <small>{num(actGeo.users)} users · {num(actGeo.visits)} visits</small>
+          <small>{plural(actGeo.users, "user", "users")} · {plural(actGeo.visits, "visit", "visits")}</small>
         </div>
       )}
     </div>

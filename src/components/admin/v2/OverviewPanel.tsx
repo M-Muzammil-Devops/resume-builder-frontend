@@ -5,13 +5,13 @@ import type { Health, Overview, Range } from "./types";
 import { RANGE_LONG } from "./types";
 import { Donut, HoursChart, TrendChart, WorldMap, MAP_SCALE } from "./charts";
 import { HealthList } from "./HealthPanel";
-import { ago, cx, flag, num, pct } from "./format";
+import { ago, cx, flag, num, pct, plural } from "./format";
 import s from "./AdminV2.module.css";
 
 const DEVICE_COLOR = { desktop: "#3b82f6", mobile: "#8b5cf6", tablet: "#22d3ee", other: "#64748b" } as const;
 const DEVICE_LABEL = { desktop: "Desktop", mobile: "Mobile", tablet: "Tablet", other: "Other" } as const;
 
-function Kpi({ icon, color, label, value, sub, hint, wide, children }: {
+export function Kpi({ icon, color, label, value, sub, hint, wide, children }: {
   icon: React.ReactNode;
   color: string;
   label: string;
@@ -59,16 +59,16 @@ export function OverviewPanel({ data, range, health, onOpen }: { data: Overview 
         </div>
       </div>
       <div className={s.kpis}>
-        <Kpi icon={<Users size={14} />} color="linear-gradient(135deg,#3b82f6,#8b5cf6)" label="Total users" value={num(k.totalUsers)}
-          hint={<span className={s.up}>+{num(k.newUsers.period)} in {long}</span>} />
+        <Kpi icon={<Users size={14} />} color="linear-gradient(135deg,#3b82f6,#8b5cf6)" label="Total users" value={num(k.totalUsers)} sub="all time"
+          hint={<span className={s.up}>+{num(k.newUsers.period)} new in {long}</span>} />
         <Kpi icon={<UserPlus size={14} />} color="linear-gradient(135deg,#22c55e,#16a34a)" label="New users" value={num(k.newUsers.today)} sub="today"
           hint={`${num(k.newUsers.period)} in ${long}`} />
         <Kpi icon={<Activity size={14} />} color="linear-gradient(135deg,#f59e0b,#f97316)" label="Active users" value={num(k.activeUsers.dau)} sub="DAU"
           hint={`${num(k.activeUsers.mau)} MAU · ${num(k.activeUsers.returning)} returning`} />
         <Kpi icon={<Globe2 size={14} />} color="linear-gradient(135deg,#22d3ee,#0ea5e9)" label="Website pages" value={num(k.totalWebsitePages.total)}
-          hint={`${num(k.totalWebsitePages.views)} views · ${num(k.totalWebsitePages.tracked)} pages visited`} />
+          hint={`${plural(k.totalWebsitePages.views, "view", "views")} · ${plural(k.totalWebsitePages.tracked, "page visited", "pages visited")}`} />
         <Kpi icon={<Mail size={14} />} color="linear-gradient(135deg,#ec4899,#a855f7)" label="Leads" value={num(k.leadsCount.total)}
-          hint={`${num(k.leadsCount.contact)} contact · ${num(k.leadsCount.signups)} sign-ups`} />
+          hint={`${num(k.leadsCount.contact)} contact · ${plural(k.leadsCount.signups, "sign-up", "sign-ups")}`} />
         <Kpi icon={<CreditCard size={14} />} color="linear-gradient(135deg,#8b5cf6,#6366f1)" label="Billing plans" wide>
           <div className={s.split} role="img" aria-label={`Free ${k.billingPlanSplit.free}, Pro ${k.billingPlanSplit.pro}`}>
             <i style={{ width: `${planTotal ? 100 - proShare * 100 : 100}%`, background: "#3b82f6" }} />
@@ -85,7 +85,7 @@ export function OverviewPanel({ data, range, health, onOpen }: { data: Overview 
         <Kpi icon={<FileDown size={14} />} color="linear-gradient(135deg,#14b8a6,#22c55e)" label="PDF exports" value={num(k.pdfExportsCount.period)}
           hint={`${num(k.pdfExportsCount.total)} all time · ${num(k.audioJobsCount.period)} audio jobs`} />
         <Kpi icon={<AlertTriangle size={14} />} color="linear-gradient(135deg,#f43f5e,#f97316)" label="Error rate" value={pct(k.errorRate.rate, 2)}
-          hint={<span className={k.errorRate.rate > 0.02 ? s.dn : s.up}>{num(k.errorRate.errors)} errors / {num(k.errorRate.requests)} requests</span>} />
+          hint={<span className={k.errorRate.rate > 0.02 ? s.dn : s.up}>{plural(k.errorRate.errors, "error", "errors")} / {plural(k.errorRate.requests, "request", "requests")}</span>} />
       </div>
 
       <div className={cx(s.grid, s.gA)}>

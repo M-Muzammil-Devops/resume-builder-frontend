@@ -5,7 +5,7 @@ import { Mail, UserPlus } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import type { Range } from "./types";
 import { RANGE_LONG } from "./types";
-import { ago, cx, num, pkt } from "./format";
+import { ago, cx, num, pkt, plural } from "./format";
 import s from "./AdminV2.module.css";
 
 function useLoad<T>(path: string, delay = 0) {
@@ -46,8 +46,8 @@ export function LeadsPanel({ range }: { range: Range }) {
       <section className={cx(s.card, s.pad)}>
         <div className={s.ttl}>
           <div>
-            <h3>{data ? num(data.contact + data.signups) : "…"} leads</h3>
-            <small>{data ? `${num(data.contact)} contact · ${num(data.signups)} sign-ups` : "Loading…"}</small>
+            <h3>{data ? plural(data.contact + data.signups, "lead", "leads") : "… leads"}</h3>
+            <small>{data ? `${num(data.contact)} contact · ${plural(data.signups, "sign-up", "sign-ups")}` : "Loading…"}</small>
           </div>
           <div className={s.filters}>
             <label className="sr-only" htmlFor="v2-lead-search">Search leads</label>
@@ -100,7 +100,7 @@ export function PagesPanel({ range }: { range: Range }) {
       <div className={s.sh}>
         <div>
           <h2>Website pages</h2>
-          <p>{data ? `${num(data.publicPages)} public pages · ${num(data.totalViews)} views` : "Loading…"} · {RANGE_LONG[range]}</p>
+          <p>{data ? `${plural(data.publicPages, "public page", "public pages")} · ${plural(data.totalViews, "view", "views")}` : "Loading…"} · {RANGE_LONG[range]}</p>
         </div>
       </div>
       {error && <div className={s.error} role="alert">{error}</div>}
@@ -153,7 +153,7 @@ export function ConsentsPanel() {
       </div>
       <section className={cx(s.card, s.pad)} style={{ marginTop: 18 }}>
         <div className={s.ttl}>
-          <div><h3>Latest choices</h3><small>{data ? `${num(data.total)} entries` : "Loading…"}</small></div>
+          <div><h3>Latest choices</h3><small>{data ? `${plural(data.total, "entry", "entries")}` : "Loading…"}</small></div>
           <select className={s.select} aria-label="Filter by choice" value={action} onChange={(e) => { setAction(e.target.value); setSkip(0); }}>
             <option value="all">Choice: All</option>
             <option value="accept_all">Accept all</option>
@@ -208,7 +208,7 @@ export function AuditPanel() {
       {error && <div className={s.error} role="alert">{error}</div>}
       <section className={cx(s.card, s.pad)}>
         <div className={s.ttl}>
-          <div><h3>{data ? `${num(data.total)} entries` : "Loading…"}</h3><small>Newest first · PKT</small></div>
+          <div><h3>{data ? `${plural(data.total, "entry", "entries")}` : "Loading…"}</h3><small>Newest first · PKT</small></div>
           <select className={s.select} aria-label="Filter by action" value={action} onChange={(e) => { setAction(e.target.value); setSkip(0); }}>
             <option value="">Action: All</option>
             <option value="user.">Users</option>

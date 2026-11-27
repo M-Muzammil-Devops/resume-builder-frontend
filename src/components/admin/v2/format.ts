@@ -50,3 +50,8 @@ export function uptime(sec: number) {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
 }
 export const cx = (...names: Array<string | false | null | undefined>) => names.filter(Boolean).join(" ");
+/** "1 person" / "3 people": a count with the right singular or plural word. */
+export function plural(n: number | null | undefined, one: string, many: string): string {
+  const v = Math.round(n ?? 0);
+  return `${num(v)} ${v === 1 ? one : many}`;
+}

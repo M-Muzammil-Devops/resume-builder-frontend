@@ -6,6 +6,7 @@ import { apiFetch } from "@/lib/api";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
 import type { AdminAccess, AdminUserRow } from "./types";
 import { ago, cx, flag, initials, num, pkt } from "./format";
+import { ConfirmDialog, Toast, type ToastMsg } from "./Dialog";
 import s from "./AdminV2.module.css";
 
 type Detail = {
@@ -35,6 +36,9 @@ export function UsersPanel({ access, onChanged }: { access: AdminAccess | null; 
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [view, setView] = useState<AdminUserRow | null>(null);
+  const [del, setDel] = useState<AdminUserRow | null>(null);
+  const [toast, setToast] = useState<ToastMsg>(null);
+  const clearToast = useCallback(() => setToast(null), []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,22 +61,28 @@ export function UsersPanel({ access, onChanged }: { access: AdminAccess | null; 
     return () => window.clearTimeout(t);
   }, [load, search]);
 
-  async function act(u: AdminUserRow, kind: "suspend" | "activate" | "delete" | "plan", value?: string) {
-    if (kind === "delete" && !window.confirm(`Delete ${u.email}? The account is closed and hidden; support can still restore it.`)) return;
+  async function act(u: AdminUserRow, kind: "suspend" | "activate" | "delete" | "purge" | "plan", value?: string) {
     if (kind === "suspend" && !window.confirm(`Suspend ${u.email}? They are signed out and cannot sign in until re-activated.`)) return;
     setBusyId(u.id);
     setError(null);
     try {
       if (kind === "delete") await apiFetch(`/admin/users/${encodeURIComponent(u.id)}`, { method: "DELETE" });
+      else if (kind === "purge") await apiFetch(`/admin/users/${encodeURIComponent(u.id)}?permanent=true`, { method: "DELETE" });
       else if (kind === "plan") await apiFetch(`/admin/users/${encodeURIComponent(u.id)}/plan`, { method: "PATCH", body: JSON.stringify({ plan: value }) });
       else await apiFetch(`/admin/users/${encodeURIComponent(u.id)}/status`, { method: "PATCH", body: JSON.stringify({ status: kind === "suspend" ? "SUSPENDED" : "ACTIVE" }) });
+      setDel(null);
       await load();
       onChanged();
       if (view?.id === u.id) {
-        setView(kind === "delete" ? null : { ...u, ...(kind === "plan" ? { plan: value as "FREE" | "PRO" } : { status: kind === "suspend" ? "SUSPENDED" : "ACTIVE" }) });
+        if (kind === "purge") setView(null);
+        else setView({ ...u, ...(kind === "plan" ? { plan: value as "FREE" | "PRO" } : { status: kind === "delete" ? "DELETED" : kind === "suspend" ? "SUSPENDED" : "ACTIVE" }) });
       }
+      if (kind === "delete") setToast({ kind: "ok", text: `${u.email} was deleted (soft). It can still be restored.` });
+      if (kind === "purge") setToast({ kind: "ok", text: `${u.email} and all its data were permanently deleted.` });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed");
+      const text = err instanceof Error ? err.message : "Action failed";
+      if (kind === "delete" || kind === "purge") setToast({ kind: "err", text });
+      else setError(text);
     } finally {
       setBusyId(null);
     }
@@ -128,7 +138,7 @@ export function UsersPanel({ access, onChanged }: { access: AdminAccess | null; 
                 <tr><td colSpan={8} className={cx(s.empty, s.tdFull)}>{search.trim() ? `No users match "${search.trim()}".` : "No users yet."}</td></tr>
               )}
               {rows.map((u) => {
-                const loc = [u.city, u.country].filter(Boolean).join(", ") || u.location || "—";
+                const loc = locationOf(u);
                 return (
                   <tr key={u.id}>
                     <td className={s.tdFull}>
@@ -138,7 +148,7 @@ export function UsersPanel({ access, onChanged }: { access: AdminAccess | null; 
                       </div>
                     </td>
                     <td data-l="Email" className={s.tdFull}>{u.email}</td>
-                    <td data-l="Location">{flag(u.countryCode)} {loc}</td>
+                    <td data-l="Location">{loc ? <>{flag(u.countryCode)} {loc}</> : <span className={s.mute}>Unknown</span>}</td>
                     <td data-l="Plan"><PlanPill plan={u.plan} /></td>
                     <td data-l="Status"><StatusPill status={u.status} /></td>
                     <td data-l="Joined">{pkt(u.createdAt, false)}</td>
@@ -159,8 +169,9 @@ export function UsersPanel({ access, onChanged }: { access: AdminAccess | null; 
                             </button>
                           )
                         )}
-                        {u.status !== "DELETED" && u.role !== "admin" && canDelete && (
-                          <button type="button" className={cx(s.btn, s.sm, s.iconOnly, s.danger)} disabled={busyId === u.id} onClick={() => void act(u, "delete")} aria-label={`Delete ${u.email}`} title="Delete">
+                        {u.role !== "admin" && canDelete && (
+                          <button type="button" className={cx(s.btn, s.sm, s.iconOnly, s.danger)} disabled={busyId === u.id} onClick={() => setDel(u)}
+                            aria-label={u.status === "DELETED" ? `Permanently delete ${u.email}` : `Delete ${u.email}`} title={u.status === "DELETED" ? "Delete permanently" : "Delete"}>
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -180,15 +191,41 @@ export function UsersPanel({ access, onChanged }: { access: AdminAccess | null; 
           </div>
         </div>
       </section>
-      {view && <UserDrawer user={view} onClose={() => setView(null)} canWrite={canWrite} busy={busyId === view.id} onPlan={(p) => void act(view, "plan", p)} />}
+      {view && (
+        <UserDrawer user={view} onClose={() => setView(null)} canWrite={canWrite} canDelete={canDelete} busy={busyId === view.id}
+          onPlan={(p) => void act(view, "plan", p)} onDelete={() => setDel(view)} locked={Boolean(del)} />
+      )}
+      {del && (
+        <ConfirmDialog
+          title={del.status === "DELETED" ? "Delete this account permanently?" : "Delete this account?"}
+          busy={busyId === del.id}
+          onClose={() => setDel(null)}
+          onChoose={(id) => void act(del, id === "purge" ? "purge" : "delete")}
+          choices={[
+            ...(del.status !== "DELETED" ? [{ id: "soft", label: "Soft delete", tone: "primary" as const }] : []),
+            { id: "purge", label: "Delete permanently", tone: "danger" as const, confirmText: "DELETE" },
+          ]}
+        >
+          <p><b>{del.email}</b></p>
+          {del.status !== "DELETED" && <p><b>Soft delete</b> closes the account and hides it. The user cannot sign in, and it can be restored later.</p>}
+          <p><b>Delete permanently</b> removes the account and all its resumes, cover letters, sign-ins and exports. This cannot be undone.</p>
+        </ConfirmDialog>
+      )}
+      <Toast msg={toast} onDone={clearToast} />
     </>
   );
 }
 
-function UserDrawer({ user, onClose, canWrite, busy, onPlan }: { user: AdminUserRow; onClose: () => void; canWrite: boolean; busy: boolean; onPlan: (plan: string) => void }) {
+function locationOf(u: AdminUserRow): string | null {
+  return u.locationLabel || [u.city, u.country].filter(Boolean).join(", ") || (u.location || "").trim() || null;
+}
+
+function UserDrawer({ user, onClose, canWrite, canDelete, busy, onPlan, onDelete, locked }: {
+  user: AdminUserRow; onClose: () => void; canWrite: boolean; canDelete: boolean; busy: boolean; onPlan: (plan: string) => void; onDelete: () => void; locked: boolean;
+}) {
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEscapeClose(onClose);
+  useEscapeClose(onClose, !locked);
   useEffect(() => {
     let alive = true;
     apiFetch<Detail>(`/admin/activity/users/${encodeURIComponent(user.id)}`)
@@ -198,7 +235,9 @@ function UserDrawer({ user, onClose, canWrite, busy, onPlan }: { user: AdminUser
       alive = false;
     };
   }, [user.id]);
-  const loc = [user.city, user.country].filter(Boolean).join(", ") || user.location || "—";
+  const loc = locationOf(user);
+  const lastLogin = detail?.logins.find((l) => l.city || l.country);
+  const shownLoc = loc || (lastLogin ? [lastLogin.city, lastLogin.country].filter(Boolean).join(", ") : null);
   return (
     <div className={s.drawerBack} role="presentation" onClick={onClose}>
       <aside className={s.drawer} role="dialog" aria-modal="true" aria-label={`User ${user.email}`} onClick={(e) => e.stopPropagation()}>
@@ -223,7 +262,7 @@ function UserDrawer({ user, onClose, canWrite, busy, onPlan }: { user: AdminUser
               </button>
             )}
           </dd>
-          <dt>Location</dt><dd>{flag(user.countryCode)} {loc}</dd>
+          <dt>Location</dt><dd>{shownLoc ? <>{flag(user.countryCode || lastLogin?.countryCode)} {shownLoc}</> : <span className={s.mute}>Unknown</span>}</dd>
           <dt>Joined</dt><dd>{pkt(user.createdAt)}</dd>
           <dt>Last active</dt><dd>{pkt(user.lastActiveAt)}</dd>
           <dt>Verified</dt><dd>{user.emailVerifiedAt ? pkt(user.emailVerifiedAt, false) : "Not verified"}</dd>
@@ -231,6 +270,13 @@ function UserDrawer({ user, onClose, canWrite, busy, onPlan }: { user: AdminUser
           <dt>Exports</dt><dd>{detail ? num(detail.user._count.exportEvents) : "…"}</dd>
           <dt>Sign-ins</dt><dd>{detail ? num(detail.user._count.loginEvents) : "…"}</dd>
         </dl>
+        {canDelete && user.role !== "admin" && (
+          <div className={s.acts} style={{ marginTop: 18, justifyContent: "flex-start" }}>
+            <button type="button" className={cx(s.btn, s.sm, s.danger)} disabled={busy} onClick={onDelete}>
+              <Trash2 size={13} aria-hidden="true" /> {user.status === "DELETED" ? "Delete permanently…" : "Delete account…"}
+            </button>
+          </div>
+        )}
         {error && <div className={s.error} style={{ marginTop: 16 }}>{error}</div>}
         <h4 style={{ margin: "22px 0 8px", fontSize: 13 }}>Recent sign-ins</h4>
         {detail && detail.logins.length === 0 && <p className={s.mute}>No sign-ins recorded.</p>}

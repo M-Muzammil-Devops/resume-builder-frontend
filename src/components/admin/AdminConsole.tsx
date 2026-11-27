@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
+  AudioLines,
   CreditCard,
   Cookie,
   FileText,
@@ -15,6 +16,7 @@ import {
   Menu,
   RefreshCw,
   ScrollText,
+  Settings,
   ShieldCheck,
   Users,
   X,
@@ -32,6 +34,8 @@ import { TeamPanel } from "./v2/TeamPanel";
 import { HealthPanel } from "./v2/HealthPanel";
 import { AuditPanel, ConsentsPanel, LeadsPanel, PagesPanel } from "./v2/ListPanels";
 import { UploadsPanel } from "./v2/UploadsPanel";
+import { AudioPanel } from "./v2/AudioPanel";
+import { SettingsPanel } from "./v2/SettingsPanel";
 import type { AdminAccess, AdminMe, Health, Overview, Range } from "./v2/types";
 import { RANGE_LABEL } from "./v2/types";
 import { cx, initials } from "./v2/format";
@@ -43,13 +47,15 @@ export type AdminTab =
   | "activity"
   | "leads"
   | "pdf"
+  | "audio"
   | "templates"
   | "pages"
   | "billing"
   | "team"
   | "health"
   | "consents"
-  | "audit";
+  | "audit"
+  | "settings";
 type Tab = AdminTab;
 
 /** BUG-1220: each tab has its own URL. */
@@ -59,6 +65,7 @@ export const TAB_PATH: Record<Tab, string> = {
   activity: "/admin/activity",
   leads: "/admin/leads",
   pdf: "/admin/pdf",
+  audio: "/admin/audio",
   templates: "/admin/templates",
   pages: "/admin/pages",
   billing: "/admin/billing",
@@ -66,6 +73,7 @@ export const TAB_PATH: Record<Tab, string> = {
   health: "/admin/health",
   consents: "/admin/consents",
   audit: "/admin/audit",
+  settings: "/admin/settings",
 };
 
 type NavItem = { id: Tab; label: string; Icon: typeof Activity; need?: "canBilling" | "canSystem" };
@@ -83,6 +91,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Content",
     items: [
       { id: "pdf", label: "PDF & Templates", Icon: FileText },
+      { id: "audio", label: "Audio Jobs", Icon: AudioLines },
       { id: "templates", label: "Uploads", Icon: FileUp },
       { id: "pages", label: "Website Pages", Icon: Globe2 },
     ],
@@ -100,6 +109,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { id: "health", label: "System Health", Icon: HeartPulse, need: "canSystem" },
       { id: "consents", label: "Cookie Consents", Icon: Cookie, need: "canSystem" },
       { id: "audit", label: "Audit Log", Icon: ScrollText, need: "canSystem" },
+      { id: "settings", label: "Settings", Icon: Settings },
     ],
   },
 ];
@@ -110,6 +120,7 @@ const HEADING: Record<Tab, [string, string]> = {
   activity: ["Users & Activity", "Every sign-in with location, device and time"],
   leads: ["Leads", "Contact-form messages and new sign-ups"],
   pdf: ["PDF & Templates", "Built-in templates, user resumes, export settings"],
+  audio: ["Audio Jobs", "Noise Remover jobs, minutes and failures"],
   templates: ["Uploads", "Templates uploaded as PDF + preview"],
   pages: ["Website Pages", "Every public page and its views"],
   billing: ["Billing & Invoices", "Revenue, balances and invoices"],
@@ -117,9 +128,10 @@ const HEADING: Record<Tab, [string, string]> = {
   health: ["System Health", "Backend, database, cache, disk, memory and email"],
   consents: ["Cookie Consents", "Cookie banner choices"],
   audit: ["Audit Log", "Every admin action"],
+  settings: ["Settings", "Brand, free-plan limits, sign-ups and integrations"],
 };
 
-const RANGED: Tab[] = ["overview", "leads", "pages"];
+const RANGED: Tab[] = ["overview", "leads", "pages", "audio"];
 
 function tabFromPath(path: string): Tab {
   const clean = path.replace(/\/+$/, "") || "/admin";
@@ -350,6 +362,8 @@ export default function AdminConsole({ initialTab = "overview" }: { initialTab?:
             {active === "health" && <HealthPanel health={health} busy={healthBusy} onRefresh={() => void loadHealth()} />}
             {active === "consents" && <ConsentsPanel />}
             {active === "audit" && <AuditPanel />}
+            {active === "audio" && <AudioPanel range={range} />}
+            {active === "settings" && <SettingsPanel access={access} />}
           </div>
         </main>
       </div>

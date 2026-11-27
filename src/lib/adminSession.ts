@@ -22,6 +22,8 @@ export const ADMIN_PAGES = [
   "/admin/health",
   "/admin/consents",
   "/admin/audit",
+  "/admin/audio",
+  "/admin/settings",
 ] as const;
 
 /** Only known admin console pages are valid post-login targets; anything else is /admin. */

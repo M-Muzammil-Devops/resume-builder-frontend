@@ -5,6 +5,7 @@ import "./globals.css";
 import "./theme.css";
 import { ChunkReloadGuard } from "@/components/system/ChunkReloadGuard";
 import { CookieConsent } from "@/components/consent/CookieConsent";
+import { SiteBanner } from "@/components/system/SiteBanner";
 
 export const metadata: Metadata = {
   title: "ResumeBuilder",
@@ -52,6 +53,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-screen antialiased">
         <ChunkReloadGuard />
+        <SiteBanner />
         {children}
         <CookieConsent />
       </body>

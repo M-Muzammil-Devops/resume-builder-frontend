@@ -5,7 +5,7 @@ import { Clock3, CreditCard, Download, Wallet, Crown } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { adminBlob, saveBlob } from "../adminFetch";
 import type { Billing } from "./types";
-import { cx, money, num, pkt } from "./format";
+import { cx, money, num, pkt, plural } from "./format";
 import s from "./AdminV2.module.css";
 
 const STATUS_PILL: Record<string, string> = { PAID: s.pG, PENDING: s.pA, FAILED: s.pR, REFUNDED: s.pN };
@@ -86,7 +86,7 @@ export function BillingPanel() {
 
       <section className={cx(s.card, s.pad)} style={{ marginTop: 18 }}>
         <div className={s.ttl}>
-          <div><h3>Invoices</h3><small>{data ? `${num(data.total)} invoices` : "Loading…"}</small></div>
+          <div><h3>Invoices</h3><small>{data ? `${plural(data.total, "invoice", "invoices")}` : "Loading…"}</small></div>
           <div className={s.filters}>
             <label className="sr-only" htmlFor="v2-inv-search">Search invoices</label>
             <input id="v2-inv-search" type="search" className={cx(s.input, s.search)} placeholder="Invoice # or email" value={search} maxLength={200} onChange={(e) => setSearch(e.target.value)} />

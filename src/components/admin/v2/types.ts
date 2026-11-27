@@ -65,6 +65,8 @@ export type AdminUserRow = {
   country: string | null;
   countryCode: string | null;
   city: string | null;
+  /** "City, Country" from the profile or the latest sign-in (GeoIP); null when unknown. */
+  locationLabel?: string | null;
   plan: "FREE" | "PRO";
   status: "ACTIVE" | "SUSPENDED" | "DELETED";
   createdAt: string;
@@ -117,3 +119,39 @@ export type TeamMember = Perms & {
   createdAt: string;
 };
 export type Team = { owners: TeamMember[]; members: TeamMember[]; roles: (Perms & { role: string })[] };
+
+export type AudioJobStatus = "queued" | "processing" | "done" | "failed" | "canceled";
+export type AudioJobRow = {
+  id: string;
+  userId: string | null;
+  user: string | null;
+  mode: string;
+  strength: number | null;
+  outputFormat: string | null;
+  inputExt: string | null;
+  sizeBytes: number;
+  durationSec: number | null;
+  status: AudioJobStatus;
+  errorCode: string | null;
+  engine: string | null;
+  processingMs: number | null;
+  createdAt: string;
+  finishedAt: string | null;
+};
+export type AudioJobs = {
+  range: string;
+  summary: { total: number; completed: number; failed: number; canceled: number; active: number; minutesProcessed: number; inRange: number; untracked: number };
+  jobs: AudioJobRow[];
+  total: number;
+  take: number;
+  skip: number;
+};
+
+export type AdminSettings = {
+  siteName: string;
+  supportEmail: string;
+  freeLimits: { pdfExportsPerMonth: number; audioMinutesPerMonth: number; maxResumes: number; watermark: boolean };
+  registrationOpen: boolean;
+  maintenance: { enabled: boolean; message: string };
+};
+export type Integration = { key: string; label: string; configured: boolean };

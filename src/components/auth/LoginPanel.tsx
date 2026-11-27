@@ -27,6 +27,7 @@ const OAUTH_ERRORS: Record<string, string> = {
   rate_limited: "Too many sign-in attempts. Try again in a few minutes.",
   unavailable: "That sign-in option is not available right now.",
   invalid: "That sign-in link is not valid. Please try again.",
+  registration_closed: "New sign-ups are paused right now. Existing accounts can still sign in.",
 };
 
 /** Sign-in form. Logic moved unchanged from app/login/page.tsx (round 12: Aurora slider UI). */
