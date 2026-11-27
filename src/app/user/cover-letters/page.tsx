@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Download, FileText, Mail, RefreshCw, Save, Sparkles, Trash2 } from "lucide-react";
 import { ApiError, apiFetch } from "@/lib/api";
+import { JD_STORAGE_KEY } from "@/lib/jobsFeed";
 import { UserWorkspace, WorkspaceHeader } from "@/components/dashboard/UserDashboardShell";
 import { GenerateLetterDialog } from "@/components/coverLetters/GenerateLetterDialog";
 import { cx, timeAgo } from "@/components/dashboard/format";
@@ -44,7 +45,7 @@ function CoverLettersView() {
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState<null | "save" | "regen" | "pdf" | "docx" | "txt" | "delete">(null);
   const [msg, setMsg] = useState<{ tone: "ok" | "err" | "info"; text: string } | null>(null);
-  const [dialog, setDialog] = useState<null | { resumeId?: string }>(null);
+  const [dialog, setDialog] = useState<null | { resumeId?: string; role?: string; company?: string; jd?: string }>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const fill = useCallback((l: CoverLetter) => {
@@ -83,7 +84,24 @@ function CoverLettersView() {
         const q = new URLSearchParams(window.location.search);
         const want = q.get("id");
         if (q.get("new") === "1") {
-          setDialog({ resumeId: q.get("resume") || undefined });
+          // "Create Cover Letter" from a job: title / company in the URL, the long JD in sessionStorage.
+          let jd = "";
+          const jobId = q.get("job");
+          if (jobId) {
+            try {
+              const raw = sessionStorage.getItem(JD_STORAGE_KEY);
+              const saved = raw ? (JSON.parse(raw) as { jobId?: string; text?: string }) : null;
+              if (saved?.jobId === jobId && typeof saved.text === "string") jd = saved.text.slice(0, 12000);
+            } catch {
+              jd = "";
+            }
+          }
+          setDialog({
+            resumeId: q.get("resume") || undefined,
+            role: (q.get("title") || "").slice(0, 120) || undefined,
+            company: (q.get("company") || "").slice(0, 120) || undefined,
+            jd: jd || undefined,
+          });
           setQuery(null);
         }
         const first = want && l.coverLetters.some((x) => x.id === want) ? want : l.coverLetters[0]?.id ?? null;
@@ -418,7 +436,9 @@ function CoverLettersView() {
         <GenerateLetterDialog
           resumes={resumes}
           initialResumeId={dialog.resumeId}
-          defaultRole={defaultRole(dialog.resumeId)}
+          defaultRole={dialog.role || defaultRole(dialog.resumeId)}
+          initialCompany={dialog.company}
+          initialJd={dialog.jd}
           onClose={() => setDialog(null)}
           onGenerated={(generated) => {
             const r = resumes.find((x) => x.id === generated.resumeId);

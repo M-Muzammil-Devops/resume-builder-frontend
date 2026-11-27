@@ -9,7 +9,7 @@ import s from "./Dashboard.module.css";
 const TOOLS = [
   { href: "/user/noise-remover", label: "Noise Remover", sub: "Clean interview audio", icon: AudioLines, bg: "linear-gradient(135deg,#22d3ee,#3b82f6)" },
   { href: "/user/pdf-tools", label: "PDF Tools", sub: "25+ tools · coming soon", icon: FileType2, bg: "linear-gradient(135deg,#f59e0b,#f43f5e)" },
-  { href: "/user/jobs", label: "Jobs", sub: "Search and shortlist roles", icon: Briefcase, bg: "linear-gradient(135deg,#22c55e,#14b8a6)" },
+  { href: "/user/jobs", label: "Jobs", sub: "Live jobs matched to your resume", icon: Briefcase, bg: "linear-gradient(135deg,#22c55e,#14b8a6)" },
   { href: "/user/tracker", label: "Tracker", sub: "Your applications", icon: Sparkles, bg: "linear-gradient(135deg,#8b5cf6,#ec4899)" },
 ];
 

@@ -18,6 +18,8 @@ export function GenerateLetterDialog({
   resumes,
   initialResumeId,
   defaultRole = "",
+  initialCompany = "",
+  initialJd = "",
   justFinalized = false,
   showResult = false,
   onClose,
@@ -26,6 +28,9 @@ export function GenerateLetterDialog({
   resumes: LetterResume[];
   initialResumeId?: string;
   defaultRole?: string;
+  /** Pre-fill from a job ("Create Cover Letter" on /user/jobs). */
+  initialCompany?: string;
+  initialJd?: string;
   /** Opened by "Finalize Resume": friendlier heading and a "Skip for now" button. */
   justFinalized?: boolean;
   /** Keep the dialog open after generating, with download and open buttons (editor). */
@@ -35,8 +40,8 @@ export function GenerateLetterDialog({
 }) {
   const [resumeId, setResumeId] = useState(initialResumeId || resumes.find((r) => r.isComplete)?.id || resumes[0]?.id || "");
   const [role, setRole] = useState(defaultRole);
-  const [company, setCompany] = useState("");
-  const [jd, setJd] = useState("");
+  const [company, setCompany] = useState(initialCompany);
+  const [jd, setJd] = useState(initialJd);
   const [tone, setTone] = useState<LetterTone>("professional");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

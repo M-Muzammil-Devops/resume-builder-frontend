@@ -23,8 +23,8 @@ const TOOLS = [
   { id: "templates", label: "Templates", sub: "Browse every resume template", href: "/user/templates" },
   { id: "noise", label: "Noise Remover", sub: "Clean interview audio", href: "/user/noise-remover" },
   { id: "pdf", label: "PDF Tools", sub: "25+ tools · coming soon", href: "/user/pdf-tools" },
-  { id: "jobs", label: "Jobs", sub: "Search roles and shortlist them", href: "/user/jobs" },
-  { id: "tracker", label: "Tracker", sub: "Your job applications board", href: "/user/tracker" },
+  { id: "jobs", label: "Jobs", sub: "Live jobs with your ATS match %", href: "/user/jobs" },
+  { id: "tracker", label: "Tracker", sub: "Saved and applied jobs", href: "/user/tracker" },
   { id: "auto-apply", label: "Auto Apply", sub: "Targeting and demo queue", href: "/user/auto-apply" },
   { id: "settings", label: "Settings", sub: "Profile, password, account", href: "/user/settings" },
 ];
