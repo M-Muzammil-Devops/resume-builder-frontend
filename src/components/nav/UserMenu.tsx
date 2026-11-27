@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { ChevronDown, LayoutDashboard, LogOut, Settings } from "lucide-react";
+import { ChevronDown, LayoutDashboard, LogOut, Settings, ShieldCheck } from "lucide-react";
 import { initialsOf, signOut, type CurrentUser } from "@/hooks/useCurrentUser";
 import s from "./UserMenu.module.css";
 
@@ -66,6 +66,12 @@ export function UserMenu({ user, className, align = "right" }: { user: CurrentUs
             <small>{user.email}</small>
           </span>
         </div>
+        {/* QA run4: admin sessions get a direct link to the admin console. */}
+        {user.role === "admin" && (
+          <Link href="/admin" role="menuitem" className={s.item} onClick={() => setOpen(false)}>
+            <ShieldCheck size={16} aria-hidden="true" /> Admin console
+          </Link>
+        )}
         <Link href="/user/dashboard" role="menuitem" className={s.item} onClick={() => setOpen(false)}>
           <LayoutDashboard size={16} aria-hidden="true" /> Dashboard
         </Link>

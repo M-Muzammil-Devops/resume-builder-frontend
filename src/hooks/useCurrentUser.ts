@@ -12,6 +12,15 @@ let inflight: Promise<CurrentUser | null> | null = null;
 let cached: { at: number; user: CurrentUser | null } | null = null;
 
 async function loadMe(): Promise<CurrentUser | null> {
+  try {
+    return await loadMeOnce();
+  } catch {
+    // QA run4: a network error (or a refresh that throws) must not leave headers stuck on "checking".
+    return null;
+  }
+}
+
+async function loadMeOnce(): Promise<CurrentUser | null> {
   if (!getToken() && !getRefreshToken()) return null;
   const fetchMe = () => apiFetch<{ user: CurrentUser | null }>("/auth/me").then((res) => res.user ?? null);
   try {
@@ -51,9 +60,11 @@ export function useCurrentUser(): CurrentUserState {
   useEffect(() => {
     let alive = true;
     const load = (force = false) =>
-      fetchCurrentUser(force).then((u) => {
-        if (alive) setUser(u);
-      });
+      fetchCurrentUser(force)
+        .catch(() => null)
+        .then((u) => {
+          if (alive) setUser(u);
+        });
     void load();
     const onChange = () => void load();
     const onStorage = (e: StorageEvent) => {

@@ -1,113 +1,157 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
+  CreditCard,
+  Cookie,
   FileText,
   FileUp,
+  Globe2,
+  HeartPulse,
   LayoutDashboard,
   LogOut,
-  MapPin,
-  Trash2,
+  Mail,
+  Menu,
+  RefreshCw,
+  ScrollText,
+  ShieldCheck,
   Users,
+  X,
 } from "lucide-react";
 import { ApiError, apiFetch, getRefreshToken, getToken, logoutSession, refreshAdminCookie } from "@/lib/api";
 import { ADMIN_LOGIN_PATH, USER_HOME_PATH } from "@/lib/adminSession";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { useEscapeClose } from "@/hooks/useEscapeClose";
 import { UsersActivityPanel } from "./UsersActivityPanel";
 import { PdfControlPanel } from "./PdfControlPanel";
+import { OverviewPanel } from "./v2/OverviewPanel";
+import { UsersPanel } from "./v2/UsersPanel";
+import { BillingPanel } from "./v2/BillingPanel";
+import { TeamPanel } from "./v2/TeamPanel";
+import { HealthPanel } from "./v2/HealthPanel";
+import { AuditPanel, ConsentsPanel, LeadsPanel, PagesPanel } from "./v2/ListPanels";
+import { UploadsPanel } from "./v2/UploadsPanel";
+import type { AdminAccess, AdminMe, Health, Overview, Range } from "./v2/types";
+import { RANGE_LABEL } from "./v2/types";
+import { cx, initials } from "./v2/format";
+import s from "./v2/AdminV2.module.css";
 
-type Stats = {
-  totals: {
-    users: number;
-    newUsersToday: number;
-    newUsersMonth: number;
-    oldUsers: number;
-    dailyActive: number;
-    monthlyActive: number;
-    loginsToday: number;
-    templates: number;
-    resumes: number;
-  };
-  locations: { country: string; count: number }[];
-  recentUsers: {
-    id: string;
-    email: string;
-    name: string | null;
-    location: string | null;
-    country: string | null;
-    createdAt: string;
-    lastLoginAt: string | null;
-  }[];
-  redis: { enabled: boolean; active: boolean; reason: string };
-};
-
-type AdminTemplate = {
-  id: string;
-  name: string;
-  department: string;
-  hasPhoto: boolean;
-  columns: string;
-  image: string;
-  isActive: boolean;
-  accentColor: string;
-  fontFamily: string;
-  layoutKey: string;
-};
-
-const DEPTS = [
-  "DevOps",
-  "Cloud",
-  "SRE",
-  "Platform",
-  "Software Engineering",
-  "Data",
-  "Design",
-  "Marketing",
-  "Product",
-  "Security",
-  "General",
-];
-
-export type AdminTab = "overview" | "templates" | "users" | "activity" | "pdf";
+export type AdminTab =
+  | "overview"
+  | "users"
+  | "activity"
+  | "leads"
+  | "pdf"
+  | "templates"
+  | "pages"
+  | "billing"
+  | "team"
+  | "health"
+  | "consents"
+  | "audit";
 type Tab = AdminTab;
 
-/** BUG-1220: each tab has its own URL (/admin, /admin/templates, /admin/users). */
-const TAB_PATH: Record<Tab, string> = {
+/** BUG-1220: each tab has its own URL. */
+export const TAB_PATH: Record<Tab, string> = {
   overview: "/admin",
-  templates: "/admin/templates",
   users: "/admin/users",
   activity: "/admin/activity",
+  leads: "/admin/leads",
   pdf: "/admin/pdf",
+  templates: "/admin/templates",
+  pages: "/admin/pages",
+  billing: "/admin/billing",
+  team: "/admin/team",
+  health: "/admin/health",
+  consents: "/admin/consents",
+  audit: "/admin/audit",
 };
-const NAV = [
-  ["overview", "Overview", LayoutDashboard],
-  ["activity", "Users & Activity", Activity],
-  ["pdf", "PDF & Templates", FileText],
-  ["templates", "Template uploads", FileUp],
-  ["users", "Users", Users],
-] as const;
 
-const TAB_HEADING: Record<Tab, [string, string]> = {
-  overview: ["Dashboard", "Monitor users, locations, and landing templates"],
+type NavItem = { id: Tab; label: string; Icon: typeof Activity; need?: "canBilling" | "canSystem" };
+const GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: "General",
+    items: [
+      { id: "overview", label: "Overview", Icon: LayoutDashboard },
+      { id: "users", label: "Users", Icon: Users },
+      { id: "activity", label: "Users & Activity", Icon: Activity },
+      { id: "leads", label: "Leads", Icon: Mail },
+    ],
+  },
+  {
+    label: "Content",
+    items: [
+      { id: "pdf", label: "PDF & Templates", Icon: FileText },
+      { id: "templates", label: "Uploads", Icon: FileUp },
+      { id: "pages", label: "Website Pages", Icon: Globe2 },
+    ],
+  },
+  {
+    label: "Business",
+    items: [
+      { id: "billing", label: "Billing & Invoices", Icon: CreditCard, need: "canBilling" },
+      { id: "team", label: "Manage Team", Icon: ShieldCheck, need: "canSystem" },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { id: "health", label: "System Health", Icon: HeartPulse, need: "canSystem" },
+      { id: "consents", label: "Cookie Consents", Icon: Cookie, need: "canSystem" },
+      { id: "audit", label: "Audit Log", Icon: ScrollText, need: "canSystem" },
+    ],
+  },
+];
+
+const HEADING: Record<Tab, [string, string]> = {
+  overview: ["Overview", "Users, traffic, billing and system at a glance"],
+  users: ["Users", "Accounts, plans and status"],
   activity: ["Users & Activity", "Every sign-in with location, device and time"],
-  pdf: ["PDF & Templates", "Built-in templates, user resumes, export settings and the admin audit log"],
-  templates: ["Uploaded templates", "Templates uploaded as PDF + preview"],
-  users: ["Users", "Accounts and their last sign-in"],
+  leads: ["Leads", "Contact-form messages and new sign-ups"],
+  pdf: ["PDF & Templates", "Built-in templates, user resumes, export settings"],
+  templates: ["Uploads", "Templates uploaded as PDF + preview"],
+  pages: ["Website Pages", "Every public page and its views"],
+  billing: ["Billing & Invoices", "Revenue, balances and invoices"],
+  team: ["Manage Team", "Team access and permissions"],
+  health: ["System Health", "Backend, database, cache, disk, memory and email"],
+  consents: ["Cookie Consents", "Cookie banner choices"],
+  audit: ["Audit Log", "Every admin action"],
 };
+
+const RANGED: Tab[] = ["overview", "leads", "pages"];
 
 function tabFromPath(path: string): Tab {
-  const hit = (Object.keys(TAB_PATH) as Tab[]).find((t) => TAB_PATH[t] === path.replace(/\/+$/, ""));
-  return hit || "overview";
+  const clean = path.replace(/\/+$/, "") || "/admin";
+  return (Object.keys(TAB_PATH) as Tab[]).find((t) => TAB_PATH[t] === clean) || "overview";
+}
+
+function allowedTab(tab: Tab, access: AdminAccess | null): boolean {
+  const item = GROUPS.flatMap((g) => g.items).find((i) => i.id === tab);
+  if (!item?.need) return true;
+  return Boolean(access?.[item.need]);
 }
 
 export default function AdminConsole({ initialTab = "overview" }: { initialTab?: Tab }) {
   const [ready, setReady] = useState(false);
-  const [authed, setAuthed] = useState(false);
+  const [me, setMe] = useState<AdminMe | null>(null);
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [range, setRange] = useState<Range>("7d");
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [health, setHealth] = useState<Health | null>(null);
+  const [healthBusy, setHealthBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [drawer, setDrawer] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  useEscapeClose(() => setDrawer(false), drawer);
+
+  const access = me?.access ?? null;
 
   function selectTab(next: Tab) {
     setTab(next);
+    setDrawer(false);
     if (window.location.pathname !== TAB_PATH[next]) window.history.pushState(null, "", TAB_PATH[next]);
+    window.scrollTo({ top: 0 });
   }
 
   useEffect(() => {
@@ -116,489 +160,199 @@ export default function AdminConsole({ initialTab = "overview" }: { initialTab?:
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!getToken() && !getRefreshToken()) {
+        window.location.replace(ADMIN_LOGIN_PATH);
+        return;
+      }
+      try {
+        const res = await apiFetch<AdminMe>("/admin/me");
+        if (!alive) return;
+        setMe(res);
+        void refreshAdminCookie();
+        setReady(true);
+      } catch (err) {
+        window.location.replace(err instanceof ApiError && err.status === 403 ? USER_HOME_PATH : `${ADMIN_LOGIN_PATH}?reason=session`);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const loadOverview = useCallback(async (r: Range) => {
+    try {
+      setOverview(await apiFetch<Overview>(`/admin/overview?range=${r}`));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load the dashboard");
+    }
+  }, []);
+
+  const loadHealth = useCallback(async () => {
+    setHealthBusy(true);
+    try {
+      setHealth(await apiFetch<Health>("/admin/health"));
+    } catch {
+      setHealth(null);
+    } finally {
+      setHealthBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ready || tab !== "overview") return;
+    void loadOverview(range);
+    const t = window.setInterval(() => void loadOverview(range), 60_000);
+    return () => window.clearInterval(t);
+  }, [ready, tab, range, loadOverview]);
+
+  useEffect(() => {
+    if (!ready || !access?.canSystem || (tab !== "overview" && tab !== "health")) return;
+    void loadHealth();
+    const t = window.setInterval(() => void loadHealth(), 60_000);
+    return () => window.clearInterval(t);
+  }, [ready, tab, access?.canSystem, loadHealth]);
+
+  async function refreshAll() {
+    setRefreshing(true);
+    await Promise.all([tab === "overview" ? loadOverview(range) : Promise.resolve(), access?.canSystem ? loadHealth() : Promise.resolve()]);
+    setRefreshing(false);
+  }
+
   function signOut() {
     void logoutSession().finally(() => window.location.assign(ADMIN_LOGIN_PATH));
   }
-  const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [templates, setTemplates] = useState<AdminTemplate[]>([]);
-  const [users, setUsers] = useState<Stats["recentUsers"]>([]);
-  const [busy, setBusy] = useState(false);
-  const [userSearch, setUserSearch] = useState("");
-  const [userSearchBusy, setUserSearchBusy] = useState(false);
 
-  // upload form
-  const [form, setForm] = useState({
-    name: "",
-    blurb: "",
-    department: "General",
-    hasPhoto: "true",
-    columns: "double",
-    layoutKey: "high-performer",
-    accentColor: "#1c2b42",
-    fontFamily: "Lato",
-  });
-  const [pdf, setPdf] = useState<File | null>(null);
-  const [preview, setPreview] = useState<File | null>(null);
-
-  async function bootstrap() {
-    // Sign-in lives at /admin/login; this page only ever shows the console.
-    if (!getToken() && !getRefreshToken()) {
-      window.location.replace(ADMIN_LOGIN_PATH);
-      return;
-    }
-    try {
-      await apiFetch<{ user: { role: string } }>("/admin/me");
-    } catch (err) {
-      // 403: signed in, but not an admin. Anything else: sign in again.
-      window.location.replace(
-        err instanceof ApiError && err.status === 403 ? USER_HOME_PATH : `${ADMIN_LOGIN_PATH}?reason=session`
-      );
-      return;
-    }
-    // Keep the HttpOnly page-guard cookie in step with the (possibly refreshed) token.
-    void refreshAdminCookie();
-    setAuthed(true);
-    setReady(true);
-    try {
-      await loadAll();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load admin data");
-    }
+  if (!ready || !me) {
+    return <div className={s.root}><div className={s.skel} style={{ gridColumn: "1 / -1", minHeight: "100vh" }}>Loading admin…</div></div>;
   }
 
-  async function loadAll() {
-    const [s, t, u] = await Promise.all([
-      apiFetch<Stats>("/admin/stats"),
-      apiFetch<{ templates: AdminTemplate[] }>("/admin/templates"),
-      apiFetch<{ users: Stats["recentUsers"] }>("/admin/users?take=100"),
-    ]);
-    setStats(s);
-    setTemplates(t.templates);
-    setUsers(u.users);
-  }
+  const active: Tab = allowedTab(tab, access) ? tab : "overview";
+  const [title, subtitle] = HEADING[active];
+  const roleLabel = access?.source === "owner" ? "Owner · Super Admin" : (access?.role || "").replace("_", " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
 
-  useEffect(() => {
-    void bootstrap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /** BUG-800: server-side user search (GET /admin/users?search=), debounced. */
-  useEffect(() => {
-    if (tab !== "users") return;
-    const q = userSearch.trim();
-    const t = window.setTimeout(() => {
-      setUserSearchBusy(true);
-      apiFetch<{ users: Stats["recentUsers"] }>(
-        `/admin/users?take=100${q ? `&search=${encodeURIComponent(q)}` : ""}`
-      )
-        .then((res) => setUsers(res.users))
-        .catch(() => undefined)
-        .finally(() => setUserSearchBusy(false));
-    }, q ? 300 : 0);
-    return () => window.clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userSearch]);
-
-  /** BUG-801: admins can remove user accounts (the API refuses admin accounts). */
-  async function deleteUser(id: string, email: string) {
-    if (!window.confirm(`Delete ${email}? Their resumes and data are removed permanently.`)) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await apiFetch(`/admin/users/${encodeURIComponent(id)}`, { method: "DELETE" });
-      setUsers((list) => list.filter((u) => u.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not delete the user");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function uploadTemplate(e: React.FormEvent) {
-    e.preventDefault();
-    if (!pdf) {
-      setError("PDF is required");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const fd = new FormData();
-      fd.append("pdf", pdf);
-      if (preview) fd.append("preview", preview);
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      await apiFetch("/admin/templates", { method: "POST", body: fd, headers: {} });
-      setPdf(null);
-      setPreview(null);
-      setForm((f) => ({ ...f, name: "", blurb: "" }));
-      await loadAll();
-      selectTab("templates");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function removeTemplate(id: string) {
-    if (!confirm("Delete this template?")) return;
-    await apiFetch(`/admin/templates/${id}`, { method: "DELETE" });
-    await loadAll();
-  }
-
-  async function toggleActive(t: AdminTemplate) {
-    await apiFetch(`/admin/templates/${t.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ isActive: !t.isActive }),
-    });
-    await loadAll();
-  }
-
-  const cards = useMemo(() => {
-    if (!stats) return [];
-    const t = stats.totals;
-    return [
-      { label: "Total users", value: t.users, hint: `${t.oldUsers} returning` },
-      { label: "New today", value: t.newUsersToday, hint: `${t.newUsersMonth} this month` },
-      { label: "Daily active", value: t.dailyActive, hint: `${t.monthlyActive} monthly` },
-      { label: "Templates", value: t.templates, hint: `${t.resumes} resumes` },
-    ];
-  }, [stats]);
-
-  if (!ready) {
-    return (
-      <div className="admin-root flex min-h-screen items-center justify-center text-sm text-slate-400">
-        Loading admin…
+  const nav = (
+    <>
+      <div className={s.brand}>
+        <span className={s.mark} aria-hidden="true">RB</span>
+        <span className={s.brandText}>
+          ResumeBuilder
+          <small>Admin console</small>
+        </span>
       </div>
-    );
-  }
-
-  if (!authed) {
-    return (
-      <div className="admin-root flex min-h-screen items-center justify-center text-sm text-slate-400">
-        Redirecting…
+      {GROUPS.map((g) => {
+        const items = g.items.filter((i) => !i.need || access?.[i.need]);
+        if (!items.length) return null;
+        return (
+          <div key={g.label} role="group" aria-label={g.label}>
+            <div className={s.group}>{g.label}</div>
+            {items.map(({ id, label, Icon }) => (
+              <a
+                key={id}
+                href={TAB_PATH[id]}
+                title={label}
+                aria-current={active === id ? "page" : undefined}
+                className={cx(s.nav, active === id && s.navOn)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  selectTab(id);
+                }}
+              >
+                <Icon size={17} aria-hidden="true" />
+                <span>{label}</span>
+                {id === "health" && health && [health.postgres, health.redis, health.disk, health.ram, health.smtp].some((x) => x.status === "warn" || x.status === "down") && (
+                  <em className={s.navBadge}>!</em>
+                )}
+              </a>
+            ))}
+          </div>
+        );
+      })}
+      <div className={s.me}>
+        <span className={s.av} aria-hidden="true">{initials(me.user.name, me.user.email)}</span>
+        <div className={s.meText}>
+          <b>{me.user.name || me.user.email.split("@")[0]}</b>
+          <small>{roleLabel}</small>
+        </div>
       </div>
-    );
-  }
+      <button type="button" className={cx(s.nav, s.signOut)} onClick={signOut} title="Sign out">
+        <LogOut size={17} aria-hidden="true" />
+        <span>Sign out</span>
+      </button>
+    </>
+  );
 
   return (
-    <div className="admin-root min-h-screen">
-      {/* BUG-1210: below 900px the sidebar is hidden, so a top bar carries the same nav. */}
-      <nav className="admin-topnav" aria-label="Admin">
-        <span className="admin-topnav-brand">Admin</span>
-        {NAV.map(([id, label, Icon]) => (
-          <a
-            key={id}
-            href={TAB_PATH[id]}
-            aria-current={tab === id ? "page" : undefined}
-            onClick={(e) => {
-              e.preventDefault();
-              selectTab(id);
-            }}
-            className={`admin-topnav-link ${tab === id ? "active" : ""}`}
-          >
-            <Icon size={15} aria-hidden="true" />
-            {label}
-          </a>
-        ))}
-        <button type="button" className="admin-topnav-link" onClick={signOut}>
-          <LogOut size={15} aria-hidden="true" />
-          Sign out
-        </button>
-      </nav>
-      <aside className="admin-side">
-        <div className="px-4 py-5">
-          <div className="text-sm font-bold tracking-wide text-cyan-300">ResumeBuilder</div>
-          <div className="text-xs text-slate-400">Admin console</div>
-        </div>
-        <nav className="space-y-1 px-2" aria-label="Admin sections">
-          {NAV.map(([id, label, Icon]) => (
-            <a
-              key={id}
-              href={TAB_PATH[id]}
-              aria-current={tab === id ? "page" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                selectTab(id);
-              }}
-              className={`admin-nav ${tab === id ? "active" : ""}`}
-            >
-              <Icon size={16} aria-hidden="true" />
-              {label}
-            </a>
-          ))}
-        </nav>
-        <button type="button" className="admin-nav mt-auto mx-2 mb-4" onClick={signOut}>
-          <LogOut size={16} />
-          Sign out
-        </button>
+    <div className={s.root}>
+      <aside id="admin-drawer" className={cx(s.side, drawer && s.sideOpen)} aria-label="Admin sections">
+        {nav}
       </aside>
+      {drawer && <button type="button" className={s.scrim} aria-label="Close menu" onClick={() => setDrawer(false)} />}
 
-      <main className="admin-main">
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{TAB_HEADING[tab][0]}</h1>
-            <p className="text-sm text-slate-400">{TAB_HEADING[tab][1]}</p>
-          </div>
-          {stats && (
-            <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300">
-              Cache: {stats.redis.active ? "on" : "off"}
-            </div>
-          )}
+      <div className={s.col}>
+        <header className={s.mob}>
+          <button type="button" className={s.icoBtn} aria-label={drawer ? "Close menu" : "Open menu"} aria-expanded={drawer} aria-controls="admin-drawer" onClick={() => setDrawer((v) => !v)}>
+            {drawer ? <X size={18} /> : <Menu size={18} />}
+          </button>
+          <span className={s.mark} aria-hidden="true">RB</span>
+          <span className={s.mobTitle}>{title}</span>
+          <ThemeToggle />
         </header>
 
-        {error && (
-          <div className="mb-4 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-            {error}
-          </div>
-        )}
-
-        {tab === "activity" && <UsersActivityPanel />}
-        {tab === "pdf" && <PdfControlPanel />}
-
-        {tab === "overview" && (
-          <div className="space-y-6">
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {cards.map((c) => (
-                <div key={c.label} className="admin-panel p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">{c.label}</div>
-                  <div className="mt-2 text-3xl font-bold text-cyan-300">{c.value}</div>
-                  <div className="mt-1 text-xs text-slate-400">{c.hint}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="admin-panel p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-                  <MapPin size={16} className="text-cyan-300" /> Locations
-                </div>
-                <div className="space-y-2">
-                  {(stats?.locations || []).length === 0 && (
-                    <p className="text-sm text-slate-400">No location data yet</p>
-                  )}
-                  {(stats?.locations || []).map((l) => (
-                    <div key={l.country} className="flex items-center justify-between text-sm">
-                      <span className="text-slate-200">{l.country}</span>
-                      <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-cyan-200">{l.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="admin-panel p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-                  <Activity size={16} className="text-cyan-300" /> Recent users
-                </div>
-                <div className="space-y-2">
-                  {(stats?.recentUsers || []).map((u) => (
-                    <div key={u.id} className="border-b border-white/5 pb-2 text-sm last:border-0">
-                      <div className="font-medium text-slate-100">{u.email}</div>
-                      <div className="text-xs text-slate-400">
-                        {u.country || u.location || "—"} · {new Date(u.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {tab === "templates" && (
-          <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
-            <form onSubmit={uploadTemplate} className="admin-panel h-fit space-y-3 p-4">
-              <h2 className="font-semibold text-white">Upload PDF template</h2>
-              <p className="text-xs text-slate-400">
-                Click-based: set Photo + Columns filters so landing page filters work.
-              </p>
-              <input
-                className="admin-input w-full"
-                placeholder="Template name"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
-              <input
-                className="admin-input w-full"
-                placeholder="Short blurb"
-                value={form.blurb}
-                onChange={(e) => setForm({ ...form, blurb: e.target.value })}
-              />
-              <label className="block text-xs text-slate-400">Department</label>
-              <select
-                className="admin-input w-full"
-                value={form.department}
-                onChange={(e) => setForm({ ...form, department: e.target.value })}
-              >
-                {DEPTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-
-              <div>
-                <div className="mb-1 text-xs font-semibold text-slate-300">Photo</div>
-                <div className="admin-seg">
-                  {[
-                    ["true", "Photo"],
-                    ["false", "No Photo"],
-                  ].map(([v, label]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className={form.hasPhoto === v ? "on" : ""}
-                      onClick={() => setForm({ ...form, hasPhoto: v })}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-1 text-xs font-semibold text-slate-300">Columns</div>
-                <div className="admin-seg">
-                  {[
-                    ["single", "Single"],
-                    ["double", "Double"],
-                  ].map(([v, label]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      className={form.columns === v ? "on" : ""}
-                      onClick={() => setForm({ ...form, columns: v })}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-2 text-[11px] text-slate-500">
-                  You can make more adjustments in the builder
-                </p>
-              </div>
-
-              <label className="block text-xs text-slate-400">PDF file *</label>
-              <input
-                type="file"
-                accept="application/pdf"
-                className="block w-full text-xs text-slate-300"
-                onChange={(e) => setPdf(e.target.files?.[0] || null)}
-                required
-              />
-              <label className="block text-xs text-slate-400">Preview image (optional)</label>
-              <input
-                type="file"
-                accept="image/*,.svg"
-                className="block w-full text-xs text-slate-300"
-                onChange={(e) => setPreview(e.target.files?.[0] || null)}
-              />
-              <button type="submit" disabled={busy} className="admin-btn w-full">
-                {busy ? "Uploading…" : "Upload to landing"}
-              </button>
-            </form>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              {templates.map((t) => (
-                <div key={t.id} className="admin-panel overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={t.image} alt={t.name} className="h-40 w-full object-cover object-top bg-slate-800" />
-                  <div className="p-3">
-                    <div className="font-semibold text-white">{t.name}</div>
-                    <div className="text-xs text-slate-400">
-                      {t.department} · {t.columns} · {t.hasPhoto ? "Photo" : "No photo"}
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button type="button" className="admin-btn-sm" onClick={() => void toggleActive(t)}>
-                        {t.isActive ? "Hide" : "Show"}
-                      </button>
-                      <button
-                        type="button"
-                        className="admin-btn-sm danger"
-                        onClick={() => void removeTemplate(t.id)}
-                      >
-                        <Trash2 size={12} /> Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {templates.length === 0 && (
-                <p className="text-sm text-slate-400">No uploaded templates yet.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {tab === "users" && (
-          <div className="admin-panel overflow-x-auto">
-            <div className="flex flex-wrap items-center gap-2 px-4 pt-4">
-              <label htmlFor="admin-user-search" className="sr-only">
-                Search users by email or name
-              </label>
-              <input
-                id="admin-user-search"
-                type="search"
-                className="admin-input w-full max-w-sm"
-                placeholder="Search users by email or name"
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                maxLength={200}
-              />
-              <span className="text-xs text-slate-300" role="status" aria-live="polite">
-                {userSearchBusy ? "Searching…" : `${users.length} user${users.length === 1 ? "" : "s"}`}
-              </span>
-            </div>
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="text-xs uppercase text-slate-400">
-                <tr>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3">Country</th>
-                  <th className="px-4 py-3">Joined</th>
-                  <th className="px-4 py-3">Last login</th>
-                  <th className="px-4 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {/* BUG-800: say so when a search matches nobody. */}
-                {!userSearchBusy && users.length === 0 && (
-                  <tr className="border-t border-white/5">
-                    <td colSpan={6} className="px-4 py-6 text-center text-slate-300">
-                      {userSearch.trim() ? `No users match "${userSearch.trim()}".` : "No users yet."}
-                    </td>
-                  </tr>
+        <main className={s.main} id="main">
+          <div className={s.inner}>
+            <div className={s.top}>
+              <div className={s.topText}>
+                {active === "overview" ? (
+                  <>
+                    <h1>{title}</h1>
+                    <p>{subtitle}</p>
+                  </>
+                ) : (
+                  <p>
+                    Admin / <b>{title}</b> · {subtitle}
+                  </p>
                 )}
-                {users.map((u) => (
-                  <tr key={u.id} className="border-t border-white/5 text-slate-200">
-                    <td className="px-4 py-2.5">{u.email}</td>
-                    <td className="px-4 py-2.5">{u.location || "—"}</td>
-                    <td className="px-4 py-2.5">{u.country || "—"}</td>
-                    <td className="px-4 py-2.5">{new Date(u.createdAt).toLocaleString()}</td>
-                    <td className="px-4 py-2.5">
-                      {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "—"}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void deleteUser(u.id, u.email)}
-                        className="inline-flex items-center gap-1 rounded-md border border-rose-500/40 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/10"
-                        aria-label={`Delete user ${u.email}`}
-                      >
-                        <Trash2 size={12} /> Delete
+              </div>
+              <div className={s.topTools}>
+                {RANGED.includes(active) && (
+                  <div className={s.seg} role="group" aria-label="Date range">
+                    {(Object.keys(RANGE_LABEL) as Range[]).map((r) => (
+                      <button key={r} type="button" aria-pressed={range === r} onClick={() => setRange(r)}>
+                        {RANGE_LABEL[r]}
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    ))}
+                  </div>
+                )}
+                {active === "overview" && (
+                  <button type="button" className={s.icoBtn} onClick={() => void refreshAll()} aria-label="Refresh" title="Refresh" disabled={refreshing}>
+                    <RefreshCw size={16} />
+                  </button>
+                )}
+                <span className={s.deskOnly}><ThemeToggle /></span>
+              </div>
+            </div>
+
+            {error && active === "overview" && <div className={s.error} role="alert">{error}</div>}
+
+            {active === "overview" && <OverviewPanel data={overview} range={range} health={access?.canSystem ? health : null} onOpen={(t) => selectTab(t as Tab)} />}
+            {active === "users" && <UsersPanel access={access} onChanged={() => setOverview(null)} />}
+            {active === "activity" && <div className={s.legacy}><UsersActivityPanel /></div>}
+            {active === "leads" && <LeadsPanel range={range} />}
+            {active === "pdf" && <div className={s.legacy}><PdfControlPanel /></div>}
+            {active === "templates" && <UploadsPanel access={access} />}
+            {active === "pages" && <PagesPanel range={range} />}
+            {active === "billing" && <BillingPanel />}
+            {active === "team" && <TeamPanel access={access} meEmail={me.user.email} />}
+            {active === "health" && <HealthPanel health={health} busy={healthBusy} onRefresh={() => void loadHealth()} />}
+            {active === "consents" && <ConsentsPanel />}
+            {active === "audit" && <AuditPanel />}
           </div>
-        )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

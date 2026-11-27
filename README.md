@@ -287,3 +287,13 @@ Checked by `src/components/landing/aurora/landingPerf.test.ts` (part of the back
   featured, preview, usage counts), users' resumes (view / download PDF, delete), PDF export settings
   and the admin audit log. Landing gallery changes come from `GET /template-settings`
   (`src/lib/templateSettings.ts`).
+
+## Admin Dashboard v2
+
+`components/admin/AdminConsole.tsx` is the shell: grouped sidebar (General, Content, Business, System), icon rail at 900–1279px, top bar + drawer below 900px, Day/Night toggle, and a range switcher (Today / 7D / 30D / 90D). Panels live in `components/admin/v2/`:
+
+- `OverviewPanel` — KPI tiles, line chart (daily sign-ups & traffic), bar chart (peak / quiet hours in PKT + busiest days), donuts (devices, Free vs Pro), geography world map, top pages, system health, latest leads.
+- `UsersPanel` (search, plan/status filters, detail drawer, suspend / activate / delete), `BillingPanel`, `TeamPanel` (invite, roles, permission matrix), `HealthPanel`, `ListPanels` (Leads, Website Pages, Cookie Consents, Audit Log), `UploadsPanel`.
+- Charts are plain React SVG (CSP-safe, no chart library). The world map paths (`v2/worldMap.ts`, Natural Earth 110m, ISO alpha-2 codes) load lazily on the Overview.
+- Every tab has its own URL (`/admin`, `/admin/users`, `/admin/leads`, `/admin/billing`, `/admin/team`, `/admin/health`, …). Tabs the signed-in team member has no permission for are hidden.
+- Layout uses container queries so it stays balanced from 1920px to 375px at 100% and 110% zoom with no horizontal scroll.

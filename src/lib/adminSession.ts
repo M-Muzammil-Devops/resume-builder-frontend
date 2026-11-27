@@ -9,7 +9,20 @@ export const ADMIN_HOME_PATH = "/admin";
 export const USER_HOME_PATH = "/user/dashboard";
 
 /** Admin console pages that exist (BUG-1220). */
-export const ADMIN_PAGES = ["/admin", "/admin/templates", "/admin/users", "/admin/activity", "/admin/pdf"] as const;
+export const ADMIN_PAGES = [
+  "/admin",
+  "/admin/templates",
+  "/admin/users",
+  "/admin/activity",
+  "/admin/pdf",
+  "/admin/leads",
+  "/admin/pages",
+  "/admin/billing",
+  "/admin/team",
+  "/admin/health",
+  "/admin/consents",
+  "/admin/audit",
+] as const;
 
 /** Only known admin console pages are valid post-login targets; anything else is /admin. */
 export function safeAdminNext(next: string | null | undefined): string {
