@@ -218,7 +218,7 @@ export function ResumeGrid({
               </button>
             </div>
           ) : (
-            <button type="button" className={s.newc} onClick={onCreate} disabled={creating}>
+            <button type="button" className={cx(s.newc, resumes.length === 0 && s.newcSolo)} onClick={onCreate} disabled={creating}>
               <div>
                 <div className={s.big}>
                   <Plus size={24} aria-hidden="true" />

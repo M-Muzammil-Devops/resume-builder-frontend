@@ -214,6 +214,8 @@ export default function DashboardPage() {
 
   function goSection(key: SectionKey) {
     setActive(key);
+    // Keep the URL in step with the highlighted item, so a reload of /user/dashboard shows Dashboard active.
+    window.history.replaceState(window.history.state, "", key === "dashboard" ? "/user/dashboard" : `/user/dashboard#${key}`);
     if (key === "dashboard") {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -248,6 +250,29 @@ export default function DashboardPage() {
     });
     return () => cancelAnimationFrame(frame);
   }, [loading, router]);
+
+  // Back at the top of the page the Dashboard item is the active one again (and a stale #section hash is dropped).
+  useEffect(() => {
+    let frame = 0;
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const scrollingUp = y < lastY;
+        lastY = y;
+        // Only when the user scrolls back up to the top (not while a section link scrolls down from it).
+        if (y > 24 || !scrollingUp) return;
+        setActive((prev) => (prev === "dashboard" ? prev : "dashboard"));
+        if (window.location.hash) window.history.replaceState(window.history.state, "", "/user/dashboard");
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const latest = resumes[0];
   const counts = { resumes: resumes.length, templates: LANDING_TEMPLATES.length, letters: letters.length };

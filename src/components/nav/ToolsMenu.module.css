@@ -217,3 +217,10 @@
 :global(html[data-theme="light"]) .item small {
   color: #5a6486;
 }
+
+/* Day mode: the COMING SOON badge needs dark violet text on the white panel. */
+:global(html[data-theme="light"]) .soon {
+  color: #6d28d9;
+  background: rgba(124, 58, 237, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(124, 58, 237, 0.28);
+}

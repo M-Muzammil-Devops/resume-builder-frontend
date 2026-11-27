@@ -19,6 +19,8 @@
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   position: relative;
+  /* flow-root keeps the nav's top margin inside .root, so no html/body strip shows above the page. */
+  display: flow-root;
   min-height: 100vh;
   overflow-x: clip;
   color: var(--ink);
@@ -867,6 +869,7 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
   font: 700 14px var(--head);
   line-height: 1.45;
+  z-index: 2;
 }
 
 /* ---------- templates ---------- */
@@ -1140,8 +1143,12 @@
   width: 170px;
   height: 170px;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
+  /* number and label stack in normal flow, so "92" never overlaps "ATS score". */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: conic-gradient(#22d3ee 0 92%, rgba(255, 255, 255, 0.1) 0);
   box-shadow: 0 20px 50px rgba(34, 211, 238, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
   transform: perspective(600px) rotateX(18deg) rotateY(-14deg);
@@ -1156,14 +1163,18 @@
 }
 .ring b {
   position: relative;
-  font: 700 44px var(--head);
+  font: 700 44px/1 var(--head);
 }
 .ring small {
-  position: absolute;
-  bottom: 44px;
+  position: relative;
   font-size: 11px;
+  line-height: 1.2;
   color: var(--mut);
   font-weight: 700;
+}
+/* Desktop: the ring sits top-right of the card, so the intro text wraps before it. */
+@media (min-width: 768px) {
+  .fcard:has(.ring) > p { max-width: min(360px, calc(100% - 210px)); }
 }
 .kw {
   display: flex;
@@ -1603,7 +1614,7 @@
   .hero h1 { font-size: 56px; }
   .howGrid { grid-template-columns: 1fr 1fr; }
   .steps { grid-column: 1 / -1; }
-  .howChar { grid-column: 1 / -1; min-height: 400px; }
+  .howChar { grid-column: 1 / -1; min-height: 470px; }
   .tc[data-o="-2"] { transform: translateX(-380px) translateZ(-160px) rotateY(42deg); }
   .tc[data-o="2"] { transform: translateX(380px) translateZ(-160px) rotateY(-42deg); }
 }
@@ -1694,7 +1705,8 @@
   .head h2 { font-size: 32px; }
   .head p { font-size: 15px; }
   .steps { grid-template-columns: 1fr; }
-  .howChar { min-height: 380px; }
+  .howChar { min-height: 470px; }
+  .howImg { height: 280px; }
   .flow { height: 400px; perspective: 900px; }
   .tc { width: 200px; height: 283px; margin-left: -100px; }
   .tc[data-o="-1"] { transform: translateX(-130px) translateZ(-60px) rotateY(34deg); }
@@ -1705,7 +1717,9 @@
   .floor { width: 420px; margin-left: -210px; }
   .filters { flex-direction: column; align-items: center; gap: 10px; }
   .fcard { padding: 26px; min-height: 0; }
-  .ring { position: relative; right: auto; top: auto; margin: 20px auto 0; width: 140px; height: 140px; }
+  .ring { position: relative; right: auto; top: auto; margin: 20px auto 0; width: 140px; height: 140px; gap: 4px; }
+  .ring b { font-size: 36px; }
+  .ring small { font-size: 10.5px; }
   .kw { margin-top: 20px; }
   .ba { max-width: 100%; }
   .after { transform: none; }
@@ -1938,6 +1952,11 @@
 :global(html[data-theme="light"]) .price ul {
   color: #2a3566;
 }
+/* The Pro card keeps its brand gradient in day mode, so its feature list stays white. */
+:global(html[data-theme="light"]) .pro ul,
+:global(html[data-theme="light"]) .pro .amt small {
+  color: rgba(255, 255, 255, 0.94);
+}
 :global(html[data-theme="light"]) .q h3 i {
   background: rgba(30, 41, 99, 0.08);
 }
@@ -2003,4 +2022,14 @@
   .links button,
   .login,
   .navCta { white-space: nowrap; }
+}
+
+/* No light html/body strip around the landing page (overscroll, short viewports) in either theme. */
+:global(html):has(.root),
+:global(html):has(.root) :global(body) {
+  background: #04060f;
+}
+:global(html[data-theme="light"]):has(.root),
+:global(html[data-theme="light"]):has(.root) :global(body) {
+  background: #f6f8ff;
 }

@@ -47,7 +47,7 @@ type Billing = "monthly" | "yearly";
 type PhotoFilter = "all" | "photo" | "none";
 type ColumnFilter = "all" | "single" | "double";
 
-const PHOTO_OPTIONS: Array<[PhotoFilter, string]> = [["all", "All"], ["photo", "Photo"], ["none", "No Photo"]];
+const PHOTO_OPTIONS: Array<[PhotoFilter, string]> = [["all", "All"], ["photo", "With Photo"], ["none", "No Photo"]];
 const COLUMN_OPTIONS: Array<[ColumnFilter, string]> = [["all", "All"], ["single", "Single"], ["double", "Double"]];
 type CSSVars = CSSProperties & Record<`--${string}`, string | number>;
 

@@ -269,6 +269,32 @@
 
 .footerLink:hover { text-decoration: underline; text-underline-offset: 3px; }
 
+/* Other pages (landing included), tablet and desktop: slim bar along the bottom edge, so it never covers the
+   hero CTA (bottom-left) or the hero character (right). */
+@media (min-width: 561px) {
+  .banner:not(.compact) {
+    left: max(20px, env(safe-area-inset-left));
+    right: max(20px, env(safe-area-inset-right));
+    bottom: max(16px, env(safe-area-inset-bottom));
+    width: auto;
+    max-width: 1180px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 14px 10px 16px;
+    border-radius: 16px;
+  }
+  .banner:not(.compact) .bannerHead { flex: none; }
+  .banner:not(.compact) .title { display: none; }
+  .banner:not(.compact) .text { flex: 1; min-width: 0; margin: 0; font-size: 0.8rem; line-height: 1.45; }
+  .banner:not(.compact) .actions { flex: none; flex-wrap: nowrap; }
+  .banner:not(.compact) .ghost { margin-right: 0; }
+  .banner:not(.compact) .primary,
+  .banner:not(.compact) .secondary,
+  .banner:not(.compact) .ghost { min-height: 36px; padding: 0 14px; }
+}
+
 /* Sign-in pages: slim full-width bar on top; the page pads its top by the bar height (--rb-consent-h). */
 .banner.compact {
   top: 0;
@@ -306,13 +332,22 @@
 }
 
 @media (max-width: 560px) {
+  /* Phones: slim bottom bar (no title row, two buttons on one line), so the hero stays visible. */
   .banner {
-    left: 10px;
-    right: 10px;
-    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: auto;
-    padding: 16px;
+    padding: 12px max(14px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    border-width: 1px 0 0;
+    border-radius: 16px 16px 0 0;
   }
+  .banner:not(.compact) .bannerHead { display: none; }
+  .banner:not(.compact) .text { margin: 0 0 8px; font-size: 0.72rem; line-height: 1.4; }
+  .banner:not(.compact) .actions { flex-wrap: nowrap; gap: 8px; }
+  .banner:not(.compact) .actions > button { min-height: 34px; padding: 0 10px; font-size: 0.76rem; white-space: nowrap; }
+  /* "Cookie settings" in the text opens the same dialog. */
+  .banner:not(.compact) .ghost { display: none; }
   .actions > button { flex: 1 1 auto; }
   .ghost { margin-right: 0; order: 3; flex-basis: 100%; }
   .banner.compact { top: 0; right: 0; bottom: auto; left: 0; padding: 10px 12px; }

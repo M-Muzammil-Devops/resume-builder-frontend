@@ -6,7 +6,7 @@ export type Billing = "monthly" | "yearly";
 export type PhotoFilter = "all" | "photo" | "none";
 export type ColumnFilter = "all" | "single" | "double";
 
-export const PHOTO_OPTIONS: Array<[PhotoFilter, string]> = [["all", "All"], ["photo", "Photo"], ["none", "No Photo"]];
+export const PHOTO_OPTIONS: Array<[PhotoFilter, string]> = [["all", "All"], ["photo", "With Photo"], ["none", "No Photo"]];
 export const COLUMN_OPTIONS: Array<[ColumnFilter, string]> = [["all", "All"], ["single", "Single"], ["double", "Double"]];
 
 export const FAQS = [
