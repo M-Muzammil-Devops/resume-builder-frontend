@@ -1,464 +1,564 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  CheckCircle2,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Copy,
   FileSearch,
+  LocateFixed,
   Plus,
+  RefreshCw,
   Sparkles,
-  Target,
+  Wand2,
   X,
 } from "lucide-react";
-import clsx from "clsx";
-import type { AtsResult } from "@/shared";
 import { ApiError, apiFetch } from "@/lib/api";
 import { jobDescriptionRejection } from "@/lib/atsEngine";
+import {
+  addSkillToDocument,
+  getAtPath,
+  hasSkill,
+  issueSectionId,
+  setAtPath,
+  type AdvancedAts,
+  type AtsBoard,
+  type AtsIssue,
+  type AtsRewrite,
+} from "@/lib/atsAdvanced";
 import { useEditorStore } from "@/store/editorStore";
 import { useEscapeClose } from "@/hooks/useEscapeClose";
-import { CopyDemoGif } from "@/components/editor/CopyDemoGif";
-import { CHECK_TAILOR_INTRO_KEY, introShouldShow } from "@/lib/phase4Logic";
+import a from "@/components/ats/AtsChecker.module.css";
 
-type Step = "intro" | "paste" | "work";
-
-type TailorAdvice = {
-  summary?: string;
-  skillsAdvice?: string;
-  experienceAdvice?: string;
+const cx = (...n: Array<string | false | null | undefined>) => n.filter(Boolean).join(" ");
+type Tab = "issues" | "keywords" | "plain";
+const JD_KEY = (id: string) => `rb_ats_jd_${id}`;
+const STATUS_LABEL: Record<AtsBoard["status"], string> = { pass: "Pass", warn: "Warn", fail: "Needs fix" };
+const SECTION_LABEL: Record<string, string> = {
+  header: "Header", summary: "Summary", experience: "Experience", education: "Education", skills: "Skills", projects: "Projects", general: "General",
 };
+const LAYER_LABEL: Record<string, string> = { parseability: "Format", keywords: "Keywords", impact: "Impact", boards: "Job boards" };
 
-const STEPS = [
-  {
-    n: 1,
-    title: "Paste the job description",
-    body: "Copy the full job ad from LinkedIn, Indeed, or the company site.",
-  },
-  {
-    n: 2,
-    title: "We analyze the job ad and score your resume for ATS",
-    body: "See which keywords match, which are missing, and how bots may rank you.",
-  },
-  {
-    n: 3,
-    title: "Get tailor suggestions so you pass AI screening",
-    body: "Clear, actionable edits for summary, skills, and experience — written for that role.",
-  },
-] as const;
-
-function markCheckTailorIntroSeen() {
-  try {
-    localStorage.setItem(CHECK_TAILOR_INTRO_KEY, "1");
-  } catch {
-    /* private mode */
-  }
+function barTone(score: number, max: number) {
+  const r = max ? score / max : 0;
+  return r >= 0.8 ? a.barOk : r >= 0.55 ? a.barWarn : a.barBad;
 }
 
-function IntroIllustration() {
+function ScoreRing({ score }: { score: number }) {
+  const r = 50;
+  const c = 2 * Math.PI * r;
+  const color = score >= 80 ? "#22c55e" : score >= 55 ? "#f59e0b" : "#f43f5e";
   return (
-    <div className="relative mx-auto mb-6 overflow-hidden rounded-xl bg-[#eef1f4] px-4 py-6">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-[radial-gradient(ellipse_at_center,rgba(107,91,149,0.12),transparent_70%)]" />
-      <div className="relative mx-auto flex max-w-[420px] items-start justify-center gap-3">
-        {/* Job description card */}
-        <div className="w-[46%] rounded-lg border border-white/80 bg-white p-2.5 shadow-md">
-          <div className="mb-1.5 text-[9px] font-bold text-[#3a414a]">Product Manager</div>
-          <div className="mb-2 text-[8px] text-[#6b5b95]">VMware</div>
-          <div className="relative space-y-1 rounded border border-[#c4b5fd] bg-[#f5f3ff] p-1.5">
-            <div className="absolute -left-0.5 -top-0.5 h-2 w-2 border-l-2 border-t-2 border-[#6b5b95]" />
-            <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 border-b-2 border-r-2 border-[#6b5b95]" />
-            <div className="h-1 w-full rounded bg-[#d4d4d8]" />
-            <div className="h-1 w-4/5 rounded bg-[#d4d4d8]" />
-            <div className="h-1 w-3/5 rounded bg-[#d4d4d8]" />
-          </div>
-          <div className="mt-2 space-y-1">
-            <div className="h-1 w-full rounded bg-[#e4e4e7]" />
-            <div className="h-1 w-2/3 rounded bg-[#e4e4e7]" />
-          </div>
-        </div>
-        {/* Resume card */}
-        <div className="relative z-[1] -ml-6 mt-3 w-[52%] rounded-lg border border-white bg-white p-2.5 shadow-lg">
-          <div className="mb-1 text-[9px] font-bold tracking-wide text-[#3a414a]">YOUR RESUME</div>
-          <div className="mb-2 text-[8px] font-semibold text-[#6b5b95]">EXPERIENCE</div>
-          <div className="space-y-1.5">
-            {["SUMMARY", "TECH STACK", "PROJECTS"].map((label) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6b5b95] text-white shadow">
-                  <Plus size={10} strokeWidth={3} />
-                </span>
-                <span className="text-[8px] font-medium text-[#5a6470]">{label}</span>
-              </div>
-            ))}
-          </div>
+    <div className={a.ring} role="img" aria-label={`ATS score ${score} out of 100`}>
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--ring-track)" strokeWidth="11" />
+        <circle
+          cx="60"
+          cy="60"
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth="11"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - Math.max(0, Math.min(100, score)) / 100)}
+          style={{ transition: "stroke-dashoffset .6s ease" }}
+        />
+      </svg>
+      <div className={a.ringTxt}>
+        <div>
+          <b>{score}</b>
+          <small>/ 100</small>
         </div>
       </div>
     </div>
   );
 }
 
+/**
+ * Batch 3: Advanced ATS Checker. 4-layer score (Parseability 25, Keywords 35, Impact 25, Job boards 15),
+ * 5 job-board badges, optional job description, missing keywords with "+ Add to Skills", issues with
+ * "Jump to section" and "Fix with AI", and the plain text an ATS parser reads.
+ */
 export function AtsModal() {
   const document = useEditorStore((s) => s.document);
   const setModal = useEditorStore((s) => s.setModal);
-  const [step, setStep] = useState<Step>(() => {
-    if (typeof window === "undefined") return "intro";
+  const docId = document?.id ?? "";
+  const [jd, setJd] = useState(() => {
+    if (typeof window === "undefined" || !docId) return "";
     try {
-      return introShouldShow(localStorage.getItem(CHECK_TAILOR_INTRO_KEY)) ? "intro" : "paste";
+      return sessionStorage.getItem(JD_KEY(docId)) ?? "";
     } catch {
-      return "intro";
+      return "";
     }
   });
-
-  function closeModal() {
-    if (step === "intro") markCheckTailorIntroSeen();
-    setModal(null);
-  }
-  useEscapeClose(closeModal);
-  const [jobDescription, setJobDescription] = useState("");
+  const [appliedJd, setAppliedJd] = useState(jd);
+  const [jdOpen, setJdOpen] = useState(!jd);
+  const [result, setResult] = useState<AdvancedAts | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AtsResult | null>(null);
-  const [tailor, setTailor] = useState<TailorAdvice | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("issues");
+  const [sevFilter, setSevFilter] = useState<"all" | "high" | "medium" | "low">("all");
+  const [fix, setFix] = useState<{ issue: AtsIssue; text: string; changes: string[]; source: AtsRewrite["source"] } | null>(null);
+  const [fixBusy, setFixBusy] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const seq = useRef(0);
 
-  async function runCheckAndTailor() {
-    if (!document || jobDescription.trim().length < 20) {
-      setError("Paste at least 20 characters of the job description.");
-      setResult(null);
-      setTailor(null);
-      return;
-    }
-    const rejection = jobDescriptionRejection(jobDescription);
-    if (rejection) {
-      setError(rejection);
-      setResult(null);
-      setTailor(null);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    setTailor(null);
-    const payload = JSON.stringify({ resume: document, jobDescription });
+  const close = useCallback(() => setModal(null), [setModal]);
+  useEscapeClose(close);
 
-    try {
-      const [atsRes, tailorRes] = await Promise.all([
-        apiFetch<{ result: AtsResult }>("/ai/ats-check", {
+  const showToast = (t: string) => {
+    setToast(t);
+    window.setTimeout(() => setToast((cur) => (cur === t ? null : cur)), 2400);
+  };
+
+  const analyze = useCallback(
+    async (jobDescription: string) => {
+      const doc = useEditorStore.getState().document;
+      if (!doc) return;
+      const run = ++seq.current;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await apiFetch<{ result: AdvancedAts }>("/ats/analyze", {
           method: "POST",
-          body: payload,
-        }),
-        apiFetch<{ advice: TailorAdvice }>("/ai/tailor", {
-          method: "POST",
-          body: payload,
-        }),
-      ]);
-      if (atsRes.result.rejected) {
-        setError(atsRes.result.summary || "This job description was not scored.");
+          body: JSON.stringify({ resumeId: doc.id, resume: { content: doc.content }, jobDescription: jobDescription.trim() || undefined }),
+        });
+        if (run !== seq.current) return;
+        setResult(res.result);
+      } catch (err) {
+        if (run !== seq.current) return;
+        if (err instanceof ApiError && err.status === 401) setError("Sign in again to run the ATS check.");
+        else if (err instanceof ApiError && err.status === 429) setError("Too many checks. Wait a minute and try again.");
+        else setError(err instanceof Error ? err.message : "The ATS check failed. Please try again.");
+      } finally {
+        if (run === seq.current) setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    void analyze(appliedJd);
+    // first run only; later runs are explicit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function runJd() {
+    const text = jd.trim();
+    if (text) {
+      const rejection = jobDescriptionRejection(text);
+      if (rejection) {
+        setError(rejection);
         return;
       }
-      setResult(atsRes.result);
-      setTailor(tailorRes.advice);
+    }
+    try {
+      if (text) sessionStorage.setItem(JD_KEY(docId), text);
+      else sessionStorage.removeItem(JD_KEY(docId));
+    } catch {
+      /* private mode */
+    }
+    setAppliedJd(text);
+    setTab("keywords");
+    void analyze(text);
+  }
+
+  function clearJd() {
+    setJd("");
+    setAppliedJd("");
+    try {
+      sessionStorage.removeItem(JD_KEY(docId));
+    } catch {
+      /* ignore */
+    }
+    void analyze("");
+  }
+
+  function addSkill(keyword: string) {
+    const doc = useEditorStore.getState().document;
+    if (!doc) return;
+    const next = addSkillToDocument(doc, keyword);
+    if (!next) {
+      showToast(`"${keyword}" is already in Skills`);
+      return;
+    }
+    useEditorStore.getState().commitDocument(next);
+    showToast(`Added "${keyword}" to Skills`);
+    void analyze(appliedJd);
+  }
+
+  function jump(issue: AtsIssue) {
+    const doc = useEditorStore.getState().document;
+    if (!doc) return;
+    const sectionId = issueSectionId(doc, issue);
+    if (!sectionId) return;
+    const store = useEditorStore.getState();
+    store.setSelectedSectionId(sectionId);
+    if (issue.fieldPath) store.setImproveFocus({ sectionId, fieldPath: issue.fieldPath, suggestionId: `ats-${issue.id}` });
+    setModal(null);
+    window.setTimeout(() => {
+      const field = issue.fieldPath ? window.document.querySelector(`[data-field-path="${sectionId}:${issue.fieldPath}"]`) : null;
+      const section = window.document.querySelector(`[data-section-id="${sectionId}"]`);
+      (field ?? section)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 60);
+    window.setTimeout(() => {
+      if (useEditorStore.getState().improveFocus?.suggestionId === `ats-${issue.id}`) useEditorStore.getState().setImproveFocus(null);
+    }, 4200);
+  }
+
+  async function fixWithAi(issue: AtsIssue) {
+    const doc = useEditorStore.getState().document;
+    if (!doc) return;
+    const sectionId = issueSectionId(doc, issue);
+    const section = doc.content.sections.find((s) => s.id === sectionId);
+    const current = section && issue.fieldPath ? getAtPath(section, issue.fieldPath) : undefined;
+    const text = typeof current === "string" && current.trim() ? current : issue.original ?? "";
+    if (!text.trim()) return;
+    setFixBusy(issue.id);
+    setError(null);
+    try {
+      const res = await apiFetch<AtsRewrite>("/ats/rewrite", {
+        method: "POST",
+        body: JSON.stringify({ resumeId: doc.id, section: issue.section, text: text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 4000), jobDescription: appliedJd || undefined, issueTitle: issue.title }),
+      });
+      setFix({ issue, text: res.text, changes: res.changes, source: res.source });
     } catch (err) {
-      if (err instanceof ApiError && err.status === 429) {
-        setError("Too many AI requests. Wait a minute and try again.");
-      } else if (err instanceof ApiError && err.status === 401) {
-        setError("Sign in to run the ATS check.");
-      } else {
-        setError(err instanceof Error ? err.message : "Check & Tailor failed. Try again.");
-      }
+      // The server never fails on content; fall back to the precomputed suggestion if the request fails.
+      if (issue.suggestedFix) setFix({ issue, text: issue.suggestedFix, changes: ["Suggested fix"], source: "rule" });
+      else setError(err instanceof Error ? err.message : "Could not rewrite. Please try again.");
     } finally {
-      setLoading(false);
+      setFixBusy(null);
     }
   }
 
+  function applyFix() {
+    if (!fix) return;
+    const doc = useEditorStore.getState().document;
+    if (!doc) return;
+    const sectionId = issueSectionId(doc, fix.issue);
+    const section = doc.content.sections.find((s) => s.id === sectionId);
+    if (!section || !fix.issue.fieldPath) return;
+    const next = setAtPath(section, fix.issue.fieldPath, fix.text.trim());
+    if (!next) {
+      setError("That text has changed in the editor. Run the check again.");
+      return;
+    }
+    useEditorStore.getState().updateSection(section.id, () => next);
+    setFix(null);
+    showToast("Applied — your resume was updated");
+    void analyze(appliedJd);
+  }
+
+  async function copyPlain() {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.plainTextPreview);
+    } catch {
+      const ta = window.document.createElement("textarea");
+      ta.value = result.plainTextPreview;
+      window.document.body.appendChild(ta);
+      ta.select();
+      window.document.execCommand("copy");
+      ta.remove();
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  const issues = useMemo(() => (result?.issues ?? []).filter((i) => sevFilter === "all" || i.severity === sevFilter), [result, sevFilter]);
+  const counts = useMemo(() => {
+    const c = { high: 0, medium: 0, low: 0 };
+    for (const i of result?.issues ?? []) c[i.severity] += 1;
+    return c;
+  }, [result]);
+  const kw = result?.keywords;
+  const target = kw ? (kw.mode === "jd" ? "your job description" : `the ${kw.benchmark} benchmark`) : "";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1e2430]/50 p-4 backdrop-blur-[2px]">
-      <div
-        className={clsx(
-          "rb-pop flex max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl",
-          step === "paste" ? "max-w-[920px]" : "max-w-[520px]"
-        )}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="check-tailor-title"
-      >
-        <div className="relative flex shrink-0 items-center justify-end px-4 pt-3">
-          <button
-            type="button"
-            onClick={closeModal}
-            className="rounded-md p-1 text-[#9aa3ad] hover:bg-[#f1f3f5] hover:text-[#4b5563]"
-            aria-label="Close"
-          >
-            <X size={18} />
+    <div className={a.back} role="presentation" onClick={close}>
+      <div className={a.root} role="dialog" aria-modal="true" aria-labelledby="ats-title" onClick={(e) => e.stopPropagation()} style={{ position: "relative" }}>
+        <header className={a.head}>
+          <span className={a.headIco} aria-hidden="true">
+            <FileSearch size={19} />
+          </span>
+          <div className={a.headTxt}>
+            <h2 id="ats-title">Advanced ATS Checker</h2>
+            <p>Parseability, keywords, impact and job-board readiness — scored the way applicant tracking systems read your resume.</p>
+          </div>
+          <button type="button" className={a.iconBtn} onClick={() => void analyze(appliedJd)} disabled={loading} aria-label="Re-run ATS check" title="Re-run check">
+            <RefreshCw size={16} aria-hidden="true" />
           </button>
-        </div>
+          <button type="button" className={a.iconBtn} onClick={close} aria-label="Close">
+            <X size={18} aria-hidden="true" />
+          </button>
+        </header>
 
-        {step === "intro" ? (
-          <div className="rb-scroll overflow-y-auto px-6 pb-6 pt-1">
-            <h2
-              id="check-tailor-title"
-              className="mx-auto max-w-[380px] text-center text-[22px] font-bold leading-snug text-[#2c333c]"
-            >
-              Check & tailor your resume so that it passes ATS screening
-            </h2>
-
-            <div className="mt-5">
-              <IntroIllustration />
-            </div>
-
-            <div className="mb-5 rounded-xl border border-[#eceef1] bg-[#fafbfc] px-4 py-3">
-              <div className="mb-2 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-[#6b5b95]">
-                <Target size={14} />
-                What you get
-              </div>
-              <ul className="space-y-1.5 text-[13px] text-[#5a6470]">
-                <li className="flex gap-2">
-                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[#5aaa7a]" />
-                  Higher chance to pass employer ATS / bots
-                </li>
-                <li className="flex gap-2">
-                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[#5aaa7a]" />
-                  Clear keyword gaps vs this exact job
-                </li>
-                <li className="flex gap-2">
-                  <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[#5aaa7a]" />
-                  Tailor tips for summary, skills & experience
-                </li>
-              </ul>
-            </div>
-
-            <ol className="mb-6 space-y-4">
-              {STEPS.map((s) => (
-                <li key={s.n} className="flex gap-3">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eef1f4] text-[12px] font-bold text-[#5a6470]">
-                    {s.n}
-                  </span>
-                  <div>
-                    <div className="text-[14px] font-semibold text-[#2c333c]">{s.title}</div>
-                    <p className="mt-0.5 text-[13px] leading-relaxed text-[#6b7280]">{s.body}</p>
+        <div className={a.body}>
+          {/* left: score, layers, boards */}
+          <div className={a.col}>
+            <section className={a.card} aria-label="ATS score">
+              {result ? (
+                <>
+                  <div className={a.scoreRow}>
+                    <ScoreRing score={result.score} />
+                    <div className={a.scoreMeta}>
+                      <p className={a.grade} style={{ color: "var(--ink)" }}>{result.grade}</p>
+                      <p>
+                        Scored against {target}. {result.stats.wordCount} words · {result.stats.bulletCount} bullets.
+                      </p>
+                    </div>
                   </div>
-                </li>
-              ))}
-            </ol>
+                  <div className={a.layers}>
+                    {result.layers.map((l) => (
+                      <div key={l.id} className={a.layer} title={l.checks.map((c) => `${c.label}: ${c.detail}`).join("\n")}>
+                        <div className={a.layerTop}>
+                          <span>{l.label}</span>
+                          <span>
+                            {l.score} / {l.max}
+                          </span>
+                        </div>
+                        <div className={cx(a.bar, barTone(l.score, l.max))} role="progressbar" aria-label={l.label} aria-valuemin={0} aria-valuemax={l.max} aria-valuenow={l.score}>
+                          <i style={{ width: `${(l.score / l.max) * 100}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className={a.skel} style={{ height: 250 }} aria-busy="true" aria-label="Scoring your resume" />
+              )}
+            </section>
 
-            <button
-              type="button"
-              onClick={() => {
-                markCheckTailorIntroSeen();
-                setStep("paste");
-              }}
-              className="w-full rounded-lg bg-[#5aaa7a] py-3 text-[15px] font-semibold text-white shadow-sm transition hover:bg-[#4d966b] hover:shadow"
-            >
-              Continue
-            </button>
+            <section className={a.card} aria-labelledby="ats-boards">
+              <h3 className={a.cardTitle} id="ats-boards">Job board readiness</h3>
+              {result ? (
+                <ul className={a.boards} style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                  {result.boards.map((b) => (
+                    <li key={b.board} className={a.boardItem} data-board={b.board}>
+                      <b>{b.label}</b>
+                      <span className={cx(a.pill, a[b.status])}>
+                        {b.status === "pass" ? <Check size={11} aria-hidden="true" /> : null}
+                        {STATUS_LABEL[b.status]} · {b.score}
+                      </span>
+                      <p>{b.reason}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className={a.skel} style={{ height: 300 }} aria-hidden="true" />
+              )}
+            </section>
           </div>
-        ) : step === "paste" ? (
-          <div className="rb-scroll flex-1 overflow-y-auto px-6 pb-5">
-            <h2
-              id="check-tailor-title"
-              className="text-center text-[22px] font-bold leading-snug text-[#1f2430]"
-            >
-              Applying for a new job?
-            </h2>
-            <p className="mx-auto mt-2 max-w-[560px] text-center text-[14px] leading-relaxed text-[#6b7280]">
-              Paste the description of the job and you&apos;ll see how much your resume is tailored
-              to it.
-            </p>
 
-            <div className="mt-5 grid gap-5 md:grid-cols-2">
-              <div>
-                <p className="mb-2 text-[13px] leading-snug text-[#3a414a]">
-                  <span className="font-semibold">1.</span> Select and copy the description of the
-                  job.
-                  <br />
-                  <span className="whitespace-nowrap">
-                    Use <strong>right-click</strong> menu or keyboard shortcut{" "}
-                    <strong>CTRL+C / CMD+C</strong>.
-                  </span>
-                </p>
-                <CopyDemoGif />
-              </div>
-              <div className="flex flex-col">
-                <p className="mb-2 text-[13px] leading-snug text-[#3a414a]">
-                  <span className="font-semibold">2.</span> Paste the full description in the area
-                  below.
-                  <br />
-                  <span className="whitespace-nowrap">
-                    Use <strong>right-click</strong> menu or keyboard shortcut{" "}
-                    <strong>CTRL+V / CMD+V</strong>.
-                  </span>
-                </p>
-                <textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  rows={10}
-                  className="min-h-[200px] flex-1 resize-y rounded-lg border border-[#d5d8dd] px-3 py-2.5 text-[13px] outline-none ring-[#5aaa7a] placeholder:text-[#9aa3ad] focus:ring-2"
-                  placeholder="Paste job description here"
-                />
-              </div>
-            </div>
+          {/* right: JD, tabs */}
+          <div className={a.col}>
+            <section className={a.card} aria-label="Job description">
+              <button type="button" className={a.jdToggle} onClick={() => setJdOpen((o) => !o)} aria-expanded={jdOpen} aria-controls="ats-jd">
+                <Sparkles size={16} aria-hidden="true" />
+                <b>Job description</b>
+                <span>{appliedJd ? `Analyzing against your pasted JD (${appliedJd.split(/\s+/).length} words)` : `Optional — without one we use the ${kw?.benchmark ?? "role"} benchmark`}</span>
+                {jdOpen ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
+              </button>
+              {jdOpen && (
+                <div className={a.jdBody} id="ats-jd">
+                  <textarea
+                    className={a.textarea}
+                    value={jd}
+                    maxLength={20000}
+                    onChange={(e) => setJd(e.target.value)}
+                    placeholder="Paste the full job post (requirements, nice-to-haves, tools)…"
+                    aria-label="Paste job description"
+                  />
+                  <div className={a.row}>
+                    <button type="button" className={cx(a.btn, a.primary)} onClick={runJd} disabled={loading || (!jd.trim() && !appliedJd)}>
+                      <FileSearch size={15} aria-hidden="true" /> {loading ? "Analyzing…" : "Analyze against JD"}
+                    </button>
+                    {(jd || appliedJd) && (
+                      <button type="button" className={cx(a.btn, a.ghost)} onClick={clearJd} disabled={loading}>
+                        Clear JD
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
 
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                disabled={jobDescription.trim().length < 20}
-                onClick={() => {
-                  setStep("work");
-                  void runCheckAndTailor();
-                }}
-                className={clsx(
-                  "rounded-lg px-5 py-2.5 text-sm font-semibold transition",
-                  jobDescription.trim().length < 20
-                    ? "cursor-not-allowed bg-[#e8eaee] text-[#9aa3ad]"
-                    : "bg-[#5aaa7a] text-white hover:bg-[#4d966b]"
-                )}
-              >
-                Continue
-              </button>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="rounded-lg border border-[#3a414a] px-5 py-2.5 text-sm font-semibold text-[#1f2430] hover:bg-[#f5f6f8]"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="rb-scroll flex-1 overflow-y-auto px-6 pb-6">
-            <div className="mb-1 flex items-center gap-2">
-              <FileSearch size={18} className="text-[#6b5b95]" />
-              <h2 id="check-tailor-title" className="text-lg font-bold text-[#2c333c]">
-                Check & Tailor
-              </h2>
-            </div>
-            <p className="mb-4 text-[13px] text-[#6b7280]">
-              Results for the job description you pasted — ATS score and tailor tips.
-            </p>
-
-            <div className="mb-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => void runCheckAndTailor()}
-                disabled={loading || !document}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#5aaa7a] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#4d966b] disabled:opacity-60"
-              >
-                <Sparkles size={15} />
-                {loading ? "Analyzing…" : "Re-run Check & Tailor"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep("paste")}
-                className="rounded-lg border border-[#d5d8dd] px-3 py-2.5 text-sm font-semibold text-[#5a6470] hover:bg-[#f5f6f8]"
-              >
-                Edit JD
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep("intro")}
-                className="rounded-lg border border-[#d5d8dd] px-3 py-2.5 text-sm font-semibold text-[#5a6470] hover:bg-[#f5f6f8]"
-              >
-                How it works
-              </button>
-            </div>
-
-            {loading && (
-              <p className="mb-3 text-sm text-[#6b7280]">Analyzing job description…</p>
-            )}
             {error && (
-              <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <p role="alert" className={cx(a.msg, a.msgErr)}>
                 {error}
               </p>
             )}
 
-            {result && (
-              <div className="rb-fade-in space-y-4">
-                <div className="rounded-xl border border-[#dce8e6] bg-[#f3faf7] p-4">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-[#3a726b]">
-                    ATS score
-                  </div>
-                  <div className="mt-1 flex items-end gap-3">
-                    <span className="text-4xl font-bold text-[#2f6f5e]">{result.score}</span>
-                    <span className="mb-1 text-sm text-[#5a6470]">/ 100</span>
-                  </div>
-                  <p className="mt-2 text-sm text-[#2c333c]">{result.summary}</p>
-                </div>
+            <div className={a.tabs} role="tablist" aria-label="ATS results">
+              {(
+                [
+                  ["issues", "Issues", "Issues", result?.issues.length],
+                  ["keywords", "Keywords", "Keywords", kw ? `${kw.skillCoverage}%` : undefined],
+                  ["plain", "Plain-text preview", "Plain text", undefined],
+                ] as const
+              ).map(([id, label, short, badge]) => (
+                <button key={id} type="button" role="tab" aria-selected={tab === id} aria-label={badge !== undefined ? `${label} ${badge}` : label} className={cx(a.tab, tab === id && a.tabOn)} onClick={() => setTab(id)}>
+                  <span className={a.tabLong}>{label}</span>
+                  <span className={a.tabShort} aria-hidden="true">{short}</span>
+                  {badge !== undefined && <em>{badge}</em>}
+                </button>
+              ))}
+            </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg border border-[#e4e7ec] p-3">
-                    <div className="text-[11px] font-semibold uppercase text-emerald-700">
-                      Matched keywords
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {result.matchedKeywords.map((k) => (
-                        <span
-                          key={k}
-                          className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-800"
-                        >
-                          {k}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-[#e4e7ec] p-3">
-                    <div className="text-[11px] font-semibold uppercase text-amber-700">
-                      Missing keywords
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {result.missingKeywords.map((k) => (
-                        <span
-                          key={k}
-                          className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] text-amber-800"
-                        >
-                          {k}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {tailor && (
-                  <div className="rounded-xl border border-[#ebe4f5] bg-[#faf8fc] p-4">
-                    <div className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-[#6b5b95]">
-                      <Sparkles size={13} />
-                      Tailor for this job
-                    </div>
-                    {tailor.summary && (
-                      <p className="mb-3 text-sm text-[#2c333c]">{tailor.summary}</p>
-                    )}
-                    <div className="space-y-2">
-                      {tailor.skillsAdvice && (
-                        <div className="rounded-lg border border-[#e4e7ec] bg-white px-3 py-2.5">
-                          <div className="text-[12px] font-semibold text-[#3a414a]">Skills</div>
-                          <p className="mt-0.5 text-[13px] text-[#5a6470]">{tailor.skillsAdvice}</p>
-                        </div>
-                      )}
-                      {tailor.experienceAdvice && (
-                        <div className="rounded-lg border border-[#e4e7ec] bg-white px-3 py-2.5">
-                          <div className="text-[12px] font-semibold text-[#3a414a]">Experience</div>
-                          <p className="mt-0.5 text-[13px] text-[#5a6470]">
-                            {tailor.experienceAdvice}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <div className="text-[11px] font-semibold uppercase text-[#8b939e]">
-                    ATS suggestions
-                  </div>
-                  {result.suggestions.map((s) => (
-                    <div
-                      key={s.area}
-                      className={clsx("rounded-lg border border-[#e4e7ec] p-3 text-sm")}
-                    >
-                      <div className="font-semibold text-[#2c333c]">{s.area}</div>
-                      <p className="text-[#5a6470]">{s.advice}</p>
-                    </div>
+            {!result ? (
+              <div className={a.skel} style={{ height: 360 }} aria-hidden="true" />
+            ) : tab === "issues" ? (
+              <section className={a.issues} role="tabpanel" aria-label="Issues">
+                <div className={a.filters}>
+                  {(["all", "high", "medium", "low"] as const).map((f) => (
+                    <button key={f} type="button" className={cx(a.btn, a.sm, sevFilter === f && a.primary)} onClick={() => setSevFilter(f)} aria-pressed={sevFilter === f}>
+                      {f === "all" ? `All ${result.issues.length}` : `${f[0].toUpperCase()}${f.slice(1)} ${counts[f]}`}
+                    </button>
                   ))}
                 </div>
-              </div>
+                {issues.length === 0 && <p className={cx(a.msg, a.msgOk)}>No {sevFilter === "all" ? "" : `${sevFilter} `}issues — nice work.</p>}
+                {issues.map((i) => {
+                  const canJump = Boolean(document && issueSectionId(document, i));
+                  return (
+                    <article key={i.id} className={a.issue} data-issue={i.id}>
+                      <div className={a.issueTop}>
+                        <span className={cx(a.sev, a[`sev${i.severity}`])} aria-label={`${i.severity} severity`} />
+                        <div className={a.issueTxt}>
+                          <b>{i.title}</b>
+                          <p>{i.detail}</p>
+                        </div>
+                      </div>
+                      <div className={a.issueMeta}>
+                        <span className={a.tag}>{LAYER_LABEL[i.layer]}</span>
+                        <span className={a.tag}>{SECTION_LABEL[i.section]}</span>
+                        <div className={a.issueActs}>
+                          {canJump && (
+                            <button type="button" className={cx(a.btn, a.sm)} onClick={() => jump(i)}>
+                              <LocateFixed size={13} aria-hidden="true" /> Jump to section
+                            </button>
+                          )}
+                          {i.fixable && i.fieldPath && (
+                            <button type="button" className={cx(a.btn, a.sm, a.primary)} onClick={() => void fixWithAi(i)} disabled={fixBusy !== null}>
+                              <Wand2 size={13} aria-hidden="true" /> {fixBusy === i.id ? "Rewriting…" : "Fix with AI"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {fix?.issue.id === i.id && (
+                        <div className={a.fix} aria-label="Suggested rewrite">
+                          <label>Before</label>
+                          <p className={a.before}>{(i.original ?? "").slice(0, 400)}</p>
+                          <label htmlFor={`fix-${i.id}`}>Improved {fix.source === "ai" ? "(AI)" : "(ATS rules)"}</label>
+                          <textarea id={`fix-${i.id}`} className={a.textarea} value={fix.text} onChange={(e) => setFix({ ...fix, text: e.target.value })} />
+                          {fix.changes.length > 0 && (
+                            <ul className={a.changes}>
+                              {fix.changes.map((ch) => (
+                                <li key={ch}>{ch}</li>
+                              ))}
+                            </ul>
+                          )}
+                          <div className={a.row}>
+                            <button type="button" className={cx(a.btn, a.primary)} onClick={applyFix} disabled={!fix.text.trim()}>
+                              <Check size={15} aria-hidden="true" /> Apply
+                            </button>
+                            <button type="button" className={a.btn} onClick={() => setFix(null)}>
+                              Discard
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </section>
+            ) : tab === "keywords" && kw ? (
+              <section className={a.card} role="tabpanel" aria-label="Keywords">
+                <div className={a.kwHead}>
+                  <b>{kw.skillCoverage}%</b>
+                  <span>
+                    keyword coverage vs {target} — {kw.matched.length} of {kw.total} matched{kw.aiEnhanced ? " (AI-enhanced)" : ""}.
+                  </span>
+                </div>
+                <div className={cx(a.bar, barTone(kw.skillCoverage, 100))} style={{ marginTop: 10 }}>
+                  <i style={{ width: `${kw.skillCoverage}%` }} />
+                </div>
+                {kw.missingRequired.length > 0 && (
+                  <>
+                    <h4 className={a.sub}>Missing — {kw.mode === "jd" ? "Required / Core" : "Core for this role"}</h4>
+                    <div className={a.chips}>
+                      {kw.missingRequired.map((k) => (
+                        <MissingChip key={k} keyword={k} onAdd={addSkill} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                {kw.missingNiceToHave.length > 0 && (
+                  <>
+                    <h4 className={a.sub}>Missing — Nice-to-have / Tools</h4>
+                    <div className={a.chips}>
+                      {kw.missingNiceToHave.map((k) => (
+                        <MissingChip key={k} keyword={k} onAdd={addSkill} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                {kw.matches.length > 0 && (
+                  <>
+                    <h4 className={a.sub}>Matched</h4>
+                    <div className={a.chips}>
+                      {kw.matches.map((m) => (
+                        <span key={m.keyword} className={cx(a.chip, m.kind === "exact" ? a.chipOk : a.chipSyn)} title={m.kind === "exact" ? "Exact match" : `${m.kind === "synonym" ? "Synonym" : "Related"} match: ${m.matchedAs}`}>
+                          {m.kind === "exact" ? <Check size={12} aria-hidden="true" /> : null}
+                          {m.keyword}
+                          {m.kind !== "exact" && <small>≈ {m.matchedAs}</small>}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                <p className={a.note} style={{ marginTop: 14 }}>
+                  Only add skills you really have. Synonyms (JS ↔ JavaScript, K8s ↔ Kubernetes) and related terms (CI/CD ≈ DevOps) count, but exact wording ranks best.
+                </p>
+              </section>
+            ) : (
+              <section className={a.card} role="tabpanel" aria-label="Plain-text preview">
+                <div className={a.cardTitle}>
+                  <span>What an ATS reads</span>
+                  <button type="button" className={cx(a.btn, a.sm)} onClick={() => void copyPlain()}>
+                    {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />} {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                <pre className={a.pre} data-testid="ats-plain">{result.plainTextPreview || "(empty)"}</pre>
+              </section>
             )}
+          </div>
+        </div>
+        {toast && (
+          <div className={a.toast} role="status">
+            {toast}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function MissingChip({ keyword, onAdd }: { keyword: string; onAdd: (k: string) => void }) {
+  const document = useEditorStore((s) => s.document);
+  const added = document ? hasSkill(document, keyword) : false;
+  return (
+    <span className={cx(a.chip, a.chipMiss, added && a.chipAdded)}>
+      {keyword}
+      {added ? (
+        <Check size={12} aria-label="Added" />
+      ) : (
+        <button type="button" className={a.chipAdd} onClick={() => onAdd(keyword)} aria-label={`Add ${keyword} to Skills`}>
+          <Plus size={11} aria-hidden="true" style={{ verticalAlign: -1 }} /> Add to Skills
+        </button>
+      )}
+    </span>
   );
 }
